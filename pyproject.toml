@@ -1,0 +1,13 @@
+[project]
+name = "eag-session8-dag"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "network>=0.1",
+    "networkx>=3.6.1",
+]
+
+[tool.uv.workspace]
+members = ["gateway", "code"]
