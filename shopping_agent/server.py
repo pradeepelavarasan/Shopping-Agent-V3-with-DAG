@@ -2,6 +2,8 @@ import json
 import re
 import sys
 import subprocess
+import urllib.request
+import urllib.parse
 from pathlib import Path
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 
@@ -30,8 +32,40 @@ class ShoppingAgentHandler(SimpleHTTPRequestHandler):
                 content_type = f"image/{file_path.suffix[1:]}"
                 
             self.serve_file(file_path, content_type)
+        # Image proxy — fetches Amazon images server-side to bypass hotlink/CORS blocks
+        elif self.path.startswith("/api/image-proxy"):
+            self.proxy_image()
         else:
             self.send_error(404, "Not Found")
+
+    def proxy_image(self):
+        """Fetch a remote image URL and relay it to the browser."""
+        parsed = urllib.parse.urlparse(self.path)
+        params = urllib.parse.parse_qs(parsed.query)
+        url = params.get("url", [""])[0]
+        if not url or not url.startswith("http"):
+            self.send_error(400, "Missing or invalid url parameter")
+            return
+        try:
+            req = urllib.request.Request(
+                url,
+                headers={
+                    "User-Agent": "Mozilla/5.0 (compatible; ShoppingAgent/1.0)",
+                    "Referer": "https://www.amazon.in/",
+                }
+            )
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                content_type = resp.headers.get("Content-Type", "image/jpeg")
+                body = resp.read()
+            self.send_response(200)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", len(body))
+            self.send_header("Cache-Control", "public, max-age=3600")
+            self.end_headers()
+            self.wfile.write(body)
+        except Exception as e:
+            print(f"[server] image-proxy error for {url}: {e}")
+            self.send_error(502, f"Could not fetch image: {e}")
 
     def serve_file(self, file_path, content_type):
         if not file_path.exists() or file_path.is_dir():

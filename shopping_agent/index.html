@@ -217,7 +217,7 @@
                     <div class="product-click-zone">
                         <div class="matrix-img-wrapper">
                              <div class="matrix-img">
-                                <img src="${prod.image_url || 'https://via.placeholder.com/180?text=Product+Image'}" onerror="this.src='https://via.placeholder.com/180?text=Product+Image'"/>
+                                <img src="${prod.image_url ? '/api/image-proxy?url=' + encodeURIComponent(prod.image_url) : 'https://via.placeholder.com/180?text=Product+Image'}" onerror="this.src='https://via.placeholder.com/180?text=Product+Image'"/>
                              </div>
                         </div>
                         <div class="grid-header">
