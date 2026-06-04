@@ -528,7 +528,76 @@ def main() -> None:
     if not query and not resume_sid:
         return
 
-    asyncio.run(Executor().run(query, session_id=resume_sid, resume=bool(resume_sid)))
+    # ── Ad-hoc / server-invoked query ──────────────────────────────────────
+    # Pre-compute the session ID (same formula used inside Executor.run) so we
+    # can create the log file before the run starts.  We then tee stdout+stderr
+    # to  state/sessions/<sid>/run.log  alongside graph.json and graph.html.
+    import os, threading
+    from pathlib import Path as _Path
+
+    sid_for_log = resume_sid or time.strftime("s8-%Y-%m-%d_%H-%M-%S")
+    sessions_root = _Path(__file__).resolve().parent / "state" / "sessions"
+    log_dir = sessions_root / sid_for_log
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_path = log_dir / "run.log"
+
+    sys.stderr.write(f"\n[logger] Saving session log to: {log_path}\n")
+    sys.stderr.flush()
+
+    # Truncate / create log file
+    log_path.write_text("", encoding="utf-8")
+
+    # Dup original stdout/stderr FDs so we can keep printing to terminal
+    orig_stdout_fd = os.dup(1)
+    orig_stderr_fd = os.dup(2)
+
+    log_file = open(log_path, "a", encoding="utf-8")
+
+    # Pipe everything through a tee thread
+    stdout_pipe_r, stdout_pipe_w = os.pipe()
+    stderr_pipe_r, stderr_pipe_w = os.pipe()
+
+    os.dup2(stdout_pipe_w, 1)
+    os.dup2(stderr_pipe_w, 2)
+    os.close(stdout_pipe_w)
+    os.close(stderr_pipe_w)
+
+    stop_event = threading.Event()
+
+    def _forward(pipe_r, orig_fd):
+        while not stop_event.is_set():
+            try:
+                data = os.read(pipe_r, 4096)
+                if not data:
+                    break
+                os.write(orig_fd, data)
+                log_file.write(data.decode("utf-8", errors="replace"))
+                log_file.flush()
+            except Exception:
+                break
+
+    t1 = threading.Thread(target=_forward, args=(stdout_pipe_r, orig_stdout_fd), daemon=True)
+    t2 = threading.Thread(target=_forward, args=(stderr_pipe_r, orig_stderr_fd), daemon=True)
+    t1.start()
+    t2.start()
+
+    try:
+        asyncio.run(Executor().run(query, session_id=sid_for_log, resume=bool(resume_sid)))
+    finally:
+        os.dup2(orig_stdout_fd, 1)
+        os.dup2(orig_stderr_fd, 2)
+        os.close(orig_stdout_fd)
+        os.close(orig_stderr_fd)
+        stop_event.set()
+        for fd in (stdout_pipe_r, stderr_pipe_r):
+            try:
+                os.close(fd)
+            except OSError:
+                pass
+        t1.join(timeout=1.0)
+        t2.join(timeout=1.0)
+        log_file.close()
+
 
 
 if __name__ == "__main__":
