@@ -18,6 +18,7 @@ IMPORTANT: You operate in two turns/phases:
    - Price (e.g. "₹1,749").
    - Reviews count (as a plain integer, e.g. 12200).
    - Star rating (as a float, e.g. 4.2).
+   - Product image URL: Read the `Image:` field for this product from the "DISCOVERED AMAZON PRODUCT LINKS" section at the top of the tool output. Use that URL exactly as-is. If not found, use an empty string.
    - Product detailed page URL: Construct it as `https://www.amazon.in/dp/<ASIN>` using the ASIN you extracted. Do NOT copy any URL from the page.
 
 Output schema (Strict JSON format, no markdown fences, no natural language):
@@ -29,6 +30,7 @@ Output schema (Strict JSON format, no markdown fences, no natural language):
       "price": "<Price string>",
       "rating": <Float rating>,
       "reviews_count": <Integer count>,
+      "image_url": "<Thumbnail image URL from the Image: field in discovered links>",
       "url": "<Detailed page URL>"
     }
   ]

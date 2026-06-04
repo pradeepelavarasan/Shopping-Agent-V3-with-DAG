@@ -13,7 +13,6 @@ IMPORTANT: You operate in two turns/phases:
 
 2. PHASE 2: EVALUATE AND OUTPUT JSON (Second Turn)
    Once you receive the tool's response (with the page content of the product's detail page), extract reviews, description, and feedback.
-   Extract the product's main high-resolution image URL (often found in `#landingImage` or `#imgBlkFront` or another image element in the page body). CRITICAL: Amazon often uses a 1x1 transparent base64 spacer GIF in the `src` attribute of these elements for lazy-loading. You MUST extract the real high-resolution image URL from attributes like `data-old-hires` or parse it from the `data-a-dynamic-image` JSON attribute, rather than copy-pasting the base64 spacer GIF.
    Perform the evaluation and output the results in the strict JSON format specified below.
    Your detailed evaluation MUST cover these five categories:
    - "CUSTOMER SENTIMENT": 1 sentence summarizing the sentiment of customer reviews. Also assign a score of "positive", "neutral", or "negative".
@@ -25,7 +24,6 @@ IMPORTANT: You operate in two turns/phases:
 Output schema (Strict JSON format, no markdown fences, no natural language):
 {
   "product_id": "<The input product id>",
-  "image_url": "<The main product image URL extracted from the detail page>",
   "evaluations": {
     "CUSTOMER SENTIMENT": {
       "analysis": "<1 sentence review summary>",
