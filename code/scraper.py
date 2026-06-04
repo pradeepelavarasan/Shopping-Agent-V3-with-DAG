@@ -101,8 +101,33 @@ async def playwright_fetch(url: str) -> str:
                     if link_lines:
                         links_summary = "DISCOVERED AMAZON PRODUCT LINKS (ASIN AND URL):\n" + "\n".join(link_lines) + "\n\n"
                     
+                    # For product detail pages (/dp/), extract the main image URL via JS
+                    # after the page has fully rendered (so src is the real image, not a spacer GIF)
+                    product_image_line = ""
+                    if "/dp/" in url:
+                        try:
+                            img_url = await page.evaluate("""() => {
+                                const img = document.querySelector('#landingImage') ||
+                                            document.querySelector('#imgBlkFront') ||
+                                            document.querySelector('.a-dynamic-image');
+                                if (!img) return '';
+                                // data-old-hires is the clearest high-res attribute
+                                const hires = img.getAttribute('data-old-hires');
+                                if (hires && hires.startsWith('http')) return hires;
+                                // Fall back to rendered src (JS will have set this to real URL)
+                                const src = img.src || '';
+                                // Reject base64 spacers
+                                if (src.startsWith('data:') || src.includes('transparent-pixel')) return '';
+                                return src;
+                            }""")
+                            if img_url:
+                                product_image_line = f"PRODUCT IMAGE URL: {img_url}\n\n"
+                                print(f"[scraper] Extracted product image: {img_url}")
+                        except Exception as ie:
+                            print(f"[scraper] Image extraction exception (ignored): {ie}")
+                    
                     # Format a minimal output container with links at the top to prevent truncation
-                    return f"PAGE TITLE: {title}\n\n{links_summary}PAGE BODY:\n{body_text}"
+                    return f"PAGE TITLE: {title}\n\n{product_image_line}{links_summary}PAGE BODY:\n{body_text}"
             except Exception as e:
                 print(f"[scraper] Attempt {attempt} failed: {e}")
                 if attempt < max_retries:
