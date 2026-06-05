@@ -22,7 +22,7 @@ The Shopping Agent V3 executes in three distinct, highly optimized phases:
 * **Price & Currency Integrity**: Prices are harvested natively (preserving the original currency, e.g., Indian Rupees `₹` or `INR` from the regional domain). The system strictly forbids converting or mutating the price.
 
 ### Phase 2: Dynamic Code Generation & Sandbox Execution
-* The **Coder** node analyzes the shortlister's products. It dynamically writes custom Python scripts to sanitize, filter, or rank the items.
+* The **Coder** node analyzes the shortlister's products. It dynamically writes custom Python scripts to sort the list of products based on the number of reviews in descending order to arrive at the top 3 shortlisted candidates for further analysis.
 * **Dynamic Node Extensions**: In `agent_config.yaml`, the coder declares `internal_successors: [sandbox_executor]`. When the Coder completes, the orchestrator automatically appends the **SandboxExecutor** to the active graph.
 * The **SandboxExecutor** runs the Python script in a secure subprocess environment, capturing stdout and returning cleaned data.
 
