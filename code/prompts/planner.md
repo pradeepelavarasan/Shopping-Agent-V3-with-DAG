@@ -36,11 +36,19 @@ Scoping a worker — IMPORTANT:
   - The `formatter` SHOULD list "USER_QUERY" in its inputs so it
     can phrase the final answer against the user's actual ask.
 
-When the user asks to compare or process N concrete items
-("compare A, B, C" / "top 3 results"), emit one node per item so
-the orchestrator can run them in parallel. Do NOT consolidate.
-Each per-item worker must carry its item in `metadata.question`
-and must NOT list USER_QUERY in its inputs.
+When the user asks to compare, analyze, or process multiple concrete items (e.g., "London, Paris, and Berlin", "Product A and Product B", "rackets A, B, C"), you MUST emit exactly one separate node per item (e.g., three separate `researcher` or `product_analyst` nodes) so the orchestrator can run them in parallel. 
+
+CRITICAL RULE: Do NOT consolidate these into a single node. Grouping multiple items into a single worker node (e.g., asking a single node "What is the population of London, Paris, and Berlin?") is STRICTLY FORBIDDEN as it breaks concurrency.
+
+Wrong (Consolidated, No Parallelism):
+- One researcher node with question: "What is the population of London, Paris, and Berlin?"
+
+Right (Fanned Out, Runs in Parallel):
+- Researcher node 1 with question: "What is the population of London?"
+- Researcher node 2 with question: "What is the population of Paris?"
+- Researcher node 3 with question: "What is the population of Berlin?"
+
+Each fanned-out worker node must carry its specific sub-question in `metadata.question` and must NOT list "USER_QUERY" in its inputs (to prevent the worker from seeing the other items).
 
 When the user demands a strict format constraint the writer might
 miss ("exactly 5-7-5 syllables", "valid JSON", "≤ 280 characters"),
