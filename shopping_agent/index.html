@@ -1,31 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8">
     <title>Shopping Agent Analysis</title>
     <link rel="stylesheet" href="/static/results.css">
 </head>
+
 <body>
     <div id="shopping-agent-container">
-        
+
         <!-- SEARCH VIEW -->
         <div id="search-view" class="search-wrapper">
             <div class="search-logo">
                 ✨ Shopping Agent
             </div>
             <form id="search-form" class="search-box-container" onsubmit="handleSearchSubmit(event)">
-                <input 
-                    type="text" 
-                    id="search-input" 
-                    class="search-input" 
-                    placeholder="Ask the Agent to search and analyze products..." 
-                    required 
-                    autocomplete="off"
-                >
+                <input type="text" id="search-input" class="search-input"
+                    placeholder="Ask the Agent to search and analyze products..." required autocomplete="off">
                 <button type="submit" class="search-submit-btn">🔍</button>
             </form>
             <div class="search-hint">
-                Try: <code>get me the best Batman and brackets for my 10-year-old son</code>
+                Try: <code>Best Badminton racquet for my 10-year-old son</code>
             </div>
         </div>
 
@@ -40,7 +36,8 @@
                         <button class="tune-btn" id="sa-tune-btn">🧠 How I recommend</button>
                         <div id="sa-tune-dropdown" class="sa-tune-dropdown hidden">
                             <div class="dropdown-title">🧠 Brain Logic</div>
-                            <div class="dropdown-sub" style="line-height: 1.5; margin-bottom: 12px;">These are the specific criteria the AI used to evaluate these products:</div>
+                            <div class="dropdown-sub" style="line-height: 1.5; margin-bottom: 12px;">These are the
+                                specific criteria the AI used to evaluate these products:</div>
                             <div id="sa-priorities-vertical" class="vertical-drag-list">
                                 <!-- Populated by JS -->
                             </div>
@@ -50,7 +47,7 @@
                     <button id="sa-close" title="New Search" onclick="showSearchView()">&times;</button>
                 </div>
             </div>
-            
+
             <div id="sa-content">
                 <!-- Loading State -->
                 <div class="loading-block" id="loading-block">
@@ -95,7 +92,7 @@
             document.getElementById('search-view').classList.add('hidden');
             document.getElementById('results-view').classList.remove('hidden');
             document.getElementById('loading-block').style.display = 'flex';
-            
+
             // Cycle loading texts to show agent process
             let idx = 0;
             const textEl = document.getElementById('loading-cycler');
@@ -142,11 +139,11 @@
                 const item = document.createElement('div');
                 item.className = 'dropdown-pri-item';
                 item.style.cursor = 'default';
-                
+
                 const textSpan = document.createElement('span');
                 textSpan.innerText = pri;
                 textSpan.style.flex = "1";
-                
+
                 item.appendChild(textSpan);
                 list.appendChild(item);
             });
@@ -155,7 +152,7 @@
         function renderMatrix(data) {
             const container = document.getElementById('matrix-container');
             const loading = document.getElementById('loading-block');
-            
+
             if (loading) loading.style.display = 'none';
             clearInterval(loadingInterval);
 
@@ -164,7 +161,7 @@
             const rootSummary = analysis.overall_agent_summary;
 
             const topRecId = analysis.products.find(x => x.is_top_recommendation)?.product_id;
-            
+
             // Sort so top recommendation is first
             products.sort((a, b) => {
                 if (a.id === topRecId) return -1;
@@ -186,22 +183,28 @@
 
                 let colClass = isTop ? "grid-col top-rec" : "grid-col";
                 let topBadge = isTop ? '<div class="top-badge-matrix">⭐ Top Recommendation</div>' : "";
-                
+
                 let evalRows = '';
                 const priorities = data.task?.priorities || [];
                 priorities.forEach(crit => {
-                     const evalPayload = aiInsight.evaluations[crit];
-                     let analysisText = "No data available from Agent.";
-                     let scoreClass = "sent-neutral";
-                     
-                     if (evalPayload) {
-                         analysisText = evalPayload.analysis || analysisText;
-                         const score = (evalPayload.score || '').toLowerCase();
-                         if (score === 'positive') scoreClass = 'sent-positive';
-                         else if (score === 'negative') scoreClass = 'sent-negative';
-                     }
+                    const evalPayload = aiInsight.evaluations[crit];
+                    let analysisText = "No data available from Agent.";
+                    let scoreClass = "sent-neutral";
 
-                     evalRows += `
+                    if (evalPayload) {
+                        // evalPayload can be either a plain string (older formatter output)
+                        // or an {analysis, score} object (correct formatter output)
+                        if (typeof evalPayload === 'string') {
+                            analysisText = evalPayload || analysisText;
+                        } else {
+                            analysisText = evalPayload.analysis || analysisText;
+                            const score = (evalPayload.score || '').toLowerCase();
+                            if (score === 'positive') scoreClass = 'sent-positive';
+                            else if (score === 'negative') scoreClass = 'sent-negative';
+                        }
+                    }
+
+                    evalRows += `
                      <div class="eval-row ${scoreClass}">
                         <span class="eval-label">${crit}</span>
                         <span class="eval-text">${analysisText}</span>
@@ -233,7 +236,7 @@
                     </div>
                 </div>`;
             });
-            
+
             html += '</div></div>';
             container.innerHTML = html;
         }
@@ -266,4 +269,5 @@
         });
     </script>
 </body>
+
 </html>

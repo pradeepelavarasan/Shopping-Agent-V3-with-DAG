@@ -82,7 +82,6 @@ async def playwright_fetch(url: str) -> str:
                     except Exception as le:
                         print(f"[scraper] Link extraction exception (ignored): {le}")
                     
-                    await browser.close()
                     
                     link_lines = []
                     seen_asins = set()
@@ -126,6 +125,7 @@ async def playwright_fetch(url: str) -> str:
                         except Exception as ie:
                             print(f"[scraper] Image extraction exception (ignored): {ie}")
                     
+                    await browser.close()
                     # Format a minimal output container with links at the top to prevent truncation
                     return f"PAGE TITLE: {title}\n\n{product_image_line}{links_summary}PAGE BODY:\n{body_text}"
             except Exception as e:

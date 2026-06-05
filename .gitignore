@@ -16,6 +16,7 @@ gateway/usage.json
 # Temp / scratch dirs
 .temp/
 **/.temp/
+gateway/tests/
 
 # Build / cache artifacts
 **/__pycache__/

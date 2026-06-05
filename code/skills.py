@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import time
 from pathlib import Path
 
@@ -183,24 +184,120 @@ def render_prompt(skill: Skill, query: str, resolved: list[dict],
     return "\n".join(parts)
 
 
+def repair_json(s: str) -> str:
+    """Scan and sanitize a JSON string from an LLM:
+    - Escape literal control chars (newlines, tabs) within double-quoted strings.
+    - Remove single-line (//) and block (/* */) comments outside strings.
+    - Remove trailing commas before } or ].
+    - Escape unescaped quote characters embedded inside string values
+      (e.g. title ending with 17") using look-ahead context.
+    """
+    result = []
+    in_string = False
+    escape = False
+    i = 0
+    n = len(s)
+    while i < n:
+        c = s[i]
+
+        if escape:
+            result.append(c)
+            escape = False
+            i += 1
+            continue
+
+        if c == '\\':
+            escape = True
+            result.append(c)
+            i += 1
+            continue
+
+        if c == '"':
+            if in_string:
+                # Decide if this quote is closing the string or is an embedded
+                # unescaped quote.  Peek ahead past optional whitespace to see
+                # what follows; a closing quote is always followed by one of
+                # the structural tokens  :  ,  }  ]  or end-of-string.
+                j = i + 1
+                while j < n and s[j] in ' \t\r\n':
+                    j += 1
+                next_ch = s[j] if j < n else ''
+                if next_ch in (':', ',', '}', ']', ''):
+                    # Looks like a genuine closing quote — toggle out of string.
+                    in_string = False
+                    result.append(c)
+                else:
+                    # Embedded unescaped quote — escape it.
+                    result.append('\\"')
+            else:
+                in_string = True
+                result.append(c)
+            i += 1
+            continue
+
+        if in_string:
+            if c == '\n':
+                result.append('\\n')
+            elif c == '\t':
+                result.append('\\t')
+            elif c == '\r':
+                result.append('\\r')
+            else:
+                result.append(c)
+            i += 1
+        else:
+            # Check for block comment /*
+            if c == '/' and i + 1 < n and s[i+1] == '*':
+                i += 2
+                while i + 1 < n and not (s[i] == '*' and s[i+1] == '/'):
+                    i += 1
+                i += 2
+            # Check for line comment //
+            elif c == '/' and i + 1 < n and s[i+1] == '/':
+                i += 2
+                while i < n and s[i] != '\n':
+                    i += 1
+            else:
+                result.append(c)
+                i += 1
+
+    cleaned = "".join(result)
+    cleaned = re.sub(r',\s*\}', '}', cleaned)
+    cleaned = re.sub(r',\s*\]', ']', cleaned)
+    return cleaned
+
+
 def parse_skill_json(text: str) -> dict:
-    """Skills return a single top-level JSON object. Strip markdown fences
-    if the model added them despite being told not to."""
+    """Skills return a single top-level JSON object. Strip markdown fences,
+    isolate the JSON object, and clean up common formatting pitfalls."""
     t = (text or "").strip()
-    if t.startswith("```"):
-        t = t.strip("`")
-        t = t.split("\n", 1)[1] if "\n" in t else t
-        if t.endswith("```"):
-            t = t[:-3]
+    
+    # Isolate candidate JSON between first '{' and last '}'
+    start, end = t.find("{"), t.rfind("}")
+    json_str = t[start:end + 1] if (start >= 0 and end > start) else t
+    
+    # Try normal JSON parsing first
     try:
-        return json.loads(t)
+        return json.loads(json_str)
     except json.JSONDecodeError:
-        start, end = t.find("{"), t.rfind("}")
-        if start >= 0 and end > start:
-            try:
-                return json.loads(t[start:end + 1])
-            except json.JSONDecodeError:
-                pass
+        pass
+        
+    # Attempt parsing after repairing common LLM formatting issues
+    try:
+        repaired = repair_json(json_str)
+        return json.loads(repaired)
+    except json.JSONDecodeError as je:
+        # Final fallback: try raw text in case isolation was wrong
+        try:
+            return json.loads(t)
+        except json.JSONDecodeError:
+            # Log the full raw text to stderr so it appears in run.log
+            sys.stderr.write(
+                f"\n[parse_skill_json] ALL PARSE ATTEMPTS FAILED: {je}\n"
+                f"RAW TEXT (first 2000 chars):\n{text[:2000]}\n"
+            )
+            sys.stderr.flush()
+
     return {}
 
 
@@ -333,8 +430,6 @@ async def run_skill(skill: Skill, node_id: str, graph_nodes,
             temperature=skill.temperature,
         )
     raw_reply_text = reply.get("text", "")
-    if skill.name == "formatter":
-        print(f"[skills debug] Formatter raw reply:\n{raw_reply_text}\n[skills debug] End of Formatter raw reply")
     parsed = parse_skill_json(raw_reply_text)
 
     # Lift orchestrator-recognised fields out of the skill's JSON.

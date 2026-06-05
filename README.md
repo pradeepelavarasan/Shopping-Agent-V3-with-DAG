@@ -4,29 +4,7 @@ A production-grade, multi-agent shopping agent orchestrated via a Directed Acycl
 
 > **Demo Video**: Watch the Shopping Agent V3 in action, scraping, analyzing, and formatting recommendations: [YouTube Demo Link](https://youtu.be/vPosAeuZ4Pc) (Placeholder for demo video link)
 
-```mermaid
-flowchart TD
-    UserQuery[User Query: "computer mouse"] --> Planner[Planner Node]
-    Planner --> Shortlister[Product Shortlister Node: Stealth Scraper]
-    Shortlister --> Coder[Coder Node: Code Gen]
-    Coder --> Sandbox[Sandbox Executor Node: Subprocess Runner]
-    Sandbox --> AnalystA[Product Analyst A: Deep Scraper & Evaluator]
-    Sandbox --> AnalystB[Product Analyst B: Deep Scraper & Evaluator]
-    Sandbox --> AnalystC[Product Analyst C: Deep Scraper & Evaluator]
-    AnalystA --> Recommendation[Product Recommendation Node]
-    AnalystB --> Recommendation
-    AnalystC --> Recommendation
-    Recommendation --> Formatter[Formatter Node: Output Merger]
-    Formatter --> FinalJSON[Final Recommendation JSON Output]
 
-    style Planner fill:#1f2d3d,stroke:#3b82f6,stroke-width:2px;
-    style Shortlister fill:#1f2d3d,stroke:#10b981,stroke-width:2px;
-    style Sandbox fill:#1f2d3d,stroke:#f59e0b,stroke-width:2px;
-    style AnalystA fill:#1f2d3d,stroke:#8b5cf6,stroke-width:2px;
-    style AnalystB fill:#1f2d3d,stroke:#8b5cf6,stroke-width:2px;
-    style AnalystC fill:#1f2d3d,stroke:#8b5cf6,stroke-width:2px;
-    style Formatter fill:#2e1065,stroke:#ec4899,stroke-width:2px;
-```
 
 ---
 
@@ -38,28 +16,20 @@ This serial execution pattern severely bottlenecks execution:
 * **Latency Penalty**: Parallelizable requests (e.g., analyzing multiple products or fetching distinct URLs) are serialized. A multi-item search query takes 11 iterations and 125 seconds.
 * **Token Bloat**: Each loop iteration accumulates redundant prompt histories, causing the input token footprint to skyrocket (~54,000 input tokens).
 
-### Session 8 DAG Optimization Results
-
-By transitioning orchestration to a **Directed Acyclic Graph (DAG)** where tasks are independent skills executing concurrently under `asyncio.gather`, we achieve substantial gains:
-
-| Metric | Sequential Agent Loop (Session 7) | Dynamic DAG Orchestrator (Session 8) | Performance Gain |
-| :--- | :--- | :--- | :--- |
-| **Wall-Clock Execution Time** | ~125 seconds | **~62 seconds** | **~50.4% Latency Reduction** |
-| **Input Token Consumption** | ~54,000 tokens | **~17,000 tokens** | **~68.5% Cost Reduction** |
-| **Concurrency Model** | Sequential Loops (blocking) | Concurrent Coroutines (`asyncio.gather`) | Multi-threaded Branching |
-
 ---
 
 ## Shopping Agent V3 Architecture Under the Hood
 
 The Shopping Agent V3 executes in three distinct, highly optimized phases:
 
-### Phase 1: Product Shortlisting (Stealth Listing Scraper)
+image to be included
+
+### Phase 1: Product Shortlisting (Listing Scraper)
 * The **Planner** receives the user query and compiles a DAG.
-* The **Product Shortlister** is triggered. It uses a stealth-configured **Playwright** headless browser to fetch the Amazon search results page.
-* It parses the HTML structure dynamically, bypassing bot detection, to extract the top 10 organic candidates.
-* It collects product ASINs, titles, ratings, reviews count, and listing detail URLs.
-* **Price & Currency Integrity**: Prices are harvested natively (preserving the original currency, e.g., Indian Rupees `₹` or `INR` from `amazon.in`). The system strictly forbids converting or mutating the price.
+* The **Product Shortlister** is triggered. It uses a custom-configured **Playwright** browser to fetch the target e-commerce platform's search results page.
+* It parses the HTML structure dynamically, utilizing standard browser headers and timing behaviors, to extract the top 10 organic candidates.
+* It collects product IDs/ASINs, titles, ratings, reviews count, and listing detail URLs.
+* **Price & Currency Integrity**: Prices are harvested natively (preserving the original currency, e.g., Indian Rupees `₹` or `INR` from the regional domain). The system strictly forbids converting or mutating the price.
 
 ### Phase 2: Dynamic Code Generation & Sandbox Execution
 * The **Coder** node analyzes the shortlister's products. It dynamically writes custom Python scripts to sanitize, filter, or rank the items.
@@ -82,7 +52,528 @@ The Shopping Agent V3 executes in three distinct, highly optimized phases:
 
 ## Tested Queries & Results
 
-*(To be showcased by the user)*
+### 1. Hello Sanity Check
+* **Query**: `Say hello.`
+* **Graph Visualization**:
+![hello_graph](Queries%20and%20Logs/hello.png)
+
+* **Execution Log**:
+```text
+[gateway] up on http://localhost:8108
+
+══════════════════════════════════════════════════════════════════════════════
+session s8-2026-06-05_00-45-54  ─  query: Say hello.
+══════════════════════════════════════════════════════════════════════════════
+[memory.read] 8 hit(s) visible to every skill this run
+[n:1] planner            complete (1.3s)
+[skills debug] formatter raw reply:
+{
+  "final_answer": "Hello! How can I assist you today?"
+}
+[skills debug] End of formatter raw reply
+[n:2] formatter          complete (0.8s)
+
+══════════════════════════════════════════════════════════════════════════════
+GATEWAY DATABASE CALLS LOGGED FOR SESSION: s8-2026-06-05_00-45-54
+══════════════════════════════════════════════════════════════════════════════
+[00:45:57] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=4522 out=76 (1269ms)
+[00:45:58] WORKER       | gemini_lite_3  | gemini-3.1-flash-lite          | OK    | in=750 out=20 (820ms)
+
+══════════════════════════════════════════════════════════════════════════════
+FINAL: Hello! How can I assist you today?
+══════════════════════════════════════════════════════════════════════════════
+```
+
+### 2. Shannon Wikipedia Info Retrieval
+* **Query**: `Fetch https://en.wikipedia.org/wiki/Claude_Shannon and tell me his birth date, death date, and three key contributions to information theory.`
+* **Graph Visualization**:
+![shannon_graph](Queries%20and%20Logs/A.%20Shannon%20Wikipedia.png)
+
+* **Execution Log**:
+```text
+══════════════════════════════════════════════════════════════════════════════
+session s8-2026-06-05_00-47-11  ─  query: Fetch https://en.wikipedia.org/wiki/Claude_Shannon and tell me his birth date, death date, and three key contributions to information theory.
+══════════════════════════════════════════════════════════════════════════════
+[memory.read] 8 hit(s) visible to every skill this run
+[n:1] planner            complete (1.4s)
+[06/05/26 00:47:15] INFO     Processing request of type            server.py:727
+                             CallToolRequest                                    
+[INIT].... → Crawl4AI 0.8.9 
+[FETCH]... ↓ https://en.wikipedia.org/wiki/Claude_Shannon                                                         | ✓ | ⏱: 1.30s 
+[SCRAPE].. ◆ https://en.wikipedia.org/wiki/Claude_Shannon                                                         | ✓ | ⏱: 0.18s 
+[COMPLETE] ● https://en.wikipedia.org/wiki/Claude_Shannon                                                         | ✓ | ⏱: 1.49s 
+[06/05/26 00:47:18] INFO     Processing request of type            server.py:727
+                             ListToolsRequest                                   
+[n:2] researcher         complete (5.9s)
+[skills debug] formatter raw reply:
+{
+  "final_answer": "Claude Shannon (April 30, 1916 – February 24, 2001) is widely recognized as the 'father of information theory.' His three key contributions to the field include:\n\n1. The introduction of the concept of information entropy.\n2. The development of the mathematical theory of communication.\n3. The formulation of the Shannon–Hartley theorem, which defines the maximum rate of error-free data transmission over a noisy channel. \n\nSource: https://en.wikipedia.org/wiki/Claude_Shannon"
+}
+[skills debug] End of formatter raw reply
+[n:3] formatter          complete (1.0s)
+
+══════════════════════════════════════════════════════════════════════════════
+GATEWAY DATABASE CALLS LOGGED FOR SESSION: s8-2026-06-05_00-47-11
+══════════════════════════════════════════════════════════════════════════════
+[00:47:13] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=3530 out=173 (1348ms)
+[00:47:15] WORKER       | gemini_lite_3  | gemini-3.1-flash-lite          | OK    | in=2578 out=28 (798ms)
+[00:47:19] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=12075 out=208 (1461ms)
+[00:47:20] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=1060 out=131 (998ms)
+
+══════════════════════════════════════════════════════════════════════════════
+FINAL: Claude Shannon (April 30, 1916 – February 24, 2001) is widely recognized as the 'father of information theory.' His three key contributions to the field include:
+
+1. The introduction of the concept of information entropy.
+2. The development of the mathematical theory of communication.
+3. The formulation of the Shannon–Hartley theorem, which defines the maximum rate of error-free data transmission over a noisy channel. 
+
+Source: https://en.wikipedia.org/wiki/Claude_Shannon
+══════════════════════════════════════════════════════════════════════════════
+```
+
+### 3. Three City Populations (Parallel Fan-Out & Calculation)
+* **Query**: `Find the populations of London, Paris, Berlin and tell me which two are closest in size.`
+* **Graph Visualization**:
+![cities_graph](Queries%20and%20Logs/I.%20Three%20city%20populations.png)
+
+* **Execution Log**:
+```text
+══════════════════════════════════════════════════════════════════════════════
+session s8-2026-06-05_00-50-03  ─  query: Find the populations of London, Paris, Berlin and tell me which two are closest in size.
+══════════════════════════════════════════════════════════════════════════════
+[memory.read] 8 hit(s) visible to every skill this run
+[n:1] planner            complete (1.7s)
+[06/05/26 00:50:06] INFO     Processing request of type            server.py:727
+                             CallToolRequest                                    
+[06/05/26 00:50:07] INFO     response:                                lib.rs:444
+                             https://grokipedia.com/api/typeahead?que           
+                             ry=current+population+of+London+Paris+Be           
+                             rlin&limit=1 200                                   
+                    INFO     response:                                lib.rs:444
+                             https://en.wikipedia.org/w/api.php?actio           
+                             n=opensearch&profile=fuzzy&limit=1&searc           
+                             h=current%20population%20of%20London%20P           
+                             aris%20Berlin 200                                  
+[06/05/26 00:50:08] INFO     response:                                lib.rs:444
+                             https://search.yahoo.com/search;_ylt=keX           
+                             -wsswvdLuXKng_WnsoyF3;_ylu=ylwuE6QI7kadn           
+                             Qg9zcgmGdofQNtBVT_USvA46CvX6_elEA4?p=cur           
+                             rent+population+of+London+Paris+Berlin             
+                             200                                                
+[06/05/26 00:50:10] INFO     response:                                lib.rs:444
+                             https://www.mojeek.com/search?q=current+           
+                             population+of+London+Paris+Berlin 200              
+                    INFO     Processing request of type            server.py:727
+                             ListToolsRequest                                   
+[06/05/26 00:50:11] INFO     Processing request of type            server.py:727
+                             CallToolRequest                                    
+[INIT].... → Crawl4AI 0.8.9 
+[FETCH]... ↓ https://en.wikipedia.org/wiki/London                                                                 | ✓ | ⏱: 1.48s 
+[SCRAPE].. ◆ https://en.wikipedia.org/wiki/London                                                                 | ✓ | ⏱: 0.46s 
+[COMPLETE] ● https://en.wikipedia.org/wiki/London                                                                 | ✓ | ⏱: 1.95s 
+[06/05/26 00:50:15] INFO     Processing request of type            server.py:727
+                             CallToolRequest                                    
+[INIT].... → Crawl4AI 0.8.9 
+[FETCH]... ↓ https://en.wikipedia.org/wiki/Paris                                                                  | ✓ | ⏱: 1.31s 
+[SCRAPE].. ◆ https://en.wikipedia.org/wiki/Paris                                                                  | ✓ | ⏱: 0.44s 
+[COMPLETE] ● https://en.wikipedia.org/wiki/Paris                                                                  | ✓ | ⏱: 1.77s 
+[06/05/26 00:50:18] INFO     Processing request of type            server.py:727
+                             CallToolRequest                                    
+[06/05/26 00:50:19] INFO     response:                                lib.rs:444
+                             https://en.wikipedia.org/w/api.php?actio           
+                             n=opensearch&profile=fuzzy&limit=1&searc           
+                             h=current%20population%20of%20London%20P           
+                             aris%20Berlin%20city%20proper 200                  
+                    INFO     response:                                lib.rs:444
+                             https://grokipedia.com/api/typeahead?que           
+                             ry=current+population+of+London+Paris+Be           
+                             rlin+city+proper&limit=1 200                       
+[06/05/26 00:50:20] INFO     response:                                lib.rs:444
+                             https://www.mojeek.com/search?q=current+           
+                             population+of+London+Paris+Berlin+city+p           
+                             roper 200                                          
+[06/05/26 00:50:21] INFO     Processing request of type            server.py:727
+                             CallToolRequest                                    
+[06/05/26 00:50:22] INFO     response:                                lib.rs:444
+                             https://grokipedia.com/api/typeahead?que           
+                             ry=population+of+London%2C+Paris+and+Ber           
+                             lin+city+proper+%28most+recent+data%29&l           
+                             imit=1 200                                         
+                    INFO     response:                                lib.rs:444
+                             https://en.wikipedia.org/w/api.php?actio           
+                             n=opensearch&profile=fuzzy&limit=1&searc           
+                             h=population%20of%20London%2C%20Paris%20           
+                             and%20Berlin%20city%20proper%20%28most%2           
+                             0recent%20data%29 200                              
+[06/05/26 00:50:23] INFO     response:                                lib.rs:444
+                             https://search.brave.com/search?q=popula           
+                             tion+of+London%2C+Paris+and+Berlin+city+           
+                             proper+%28most+recent+data%29&source=web           
+                              200                                               
+[n:2] researcher         complete (19.2s)
+[skills debug] coder raw reply:
+{
+  "code": "import itertools\n\n# Data based on administrative limits as per input findings\ncities = {\n    \"London\": 8900000,\n    \"Berlin\": 3700000,\n    \"Paris\": 2100000\n}\n\ndef calculate_differences():\n    pairs = list(itertools.combinations(cities.keys(), 2))\n    differences = []\n    \n    for p1, p2 in pairs:\n        diff = abs(cities[p1] - cities[p2])\n        differences.append(((p1, p2), diff))\n    \n    # Identify the pair with the smallest difference\n    smallest = min(differences, key=lambda x: x[1])\n    \n    print(f\"Population Differences:\")\n    for (p1, p2), diff in differences:\n        print(f\"{p1} vs {p2}: {diff:,}\")\n    \n    print(f\"\\nThe smallest difference is between {smallest[0][0]} and {smallest[0][1]} with a difference of {smallest[1]:,}.\")\n\nif __name__ == \"__main__\":\n    calculate_differences()",
+  "rationale": "The script defines the population constants extracted from the input, calculates absolute differences for all pairs using itertools, and identifies the pair with the minimum difference."
+}
+[skills debug] End of coder raw reply
+[n:3] coder              complete (1.6s)
+[n:4] sandbox_executor   complete (0.0s)
+[skills debug] formatter raw reply:
+{
+  "final_answer": "Based on current administrative city limits, the populations are approximately 9 million for London, 3.7 million for Berlin, and 2.1 million for Paris. Comparing these figures, the two cities closest in size are Berlin and Paris, with a population difference of approximately 1.6 million."
+}
+[skills debug] End of formatter raw reply
+[n:5] formatter          complete (0.9s)
+
+══════════════════════════════════════════════════════════════════════════════
+GATEWAY DATABASE CALLS LOGGED FOR SESSION: s8-2026-06-05_00-50-03
+══════════════════════════════════════════════════════════════════════════════
+[00:50:05] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=1911 out=296 (1687ms)
+[00:50:06] WORKER       | gemini_lite_3  | gemini-3.1-flash-lite          | OK    | in=940 out=21 (687ms)
+[00:50:11] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=1370 out=26 (916ms)
+[00:50:15] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=12037 out=26 (976ms)
+[00:50:18] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=22795 out=23 (983ms)
+[00:50:21] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=23321 out=29 (848ms)
+[00:50:24] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=23967 out=302 (1714ms)
+[00:50:26] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=999 out=337 (1599ms)
+[00:50:27] WORKER       | gemini_lite_3  | gemini-3.1-flash-lite          | OK    | in=1364 out=72 (904ms)
+
+══════════════════════════════════════════════════════════════════════════════
+FINAL: Based on current administrative city limits, the populations are approximately 9 million for London, 3.7 million for Berlin, and 2.1 million for Paris. Comparing these figures, the two cities closest in size are Berlin and Paris, with a population difference of approximately 1.6 million.
+══════════════════════════════════════════════════════════════════════════════
+```
+
+### 4. Graceful Failure Handling
+* **Query**: `Read /nonexistent/path.txt and tell me what's in it.`
+* **Graph Visualization**:
+![failure_graph](Queries%20and%20Logs/J.%20Graceful%20failure.png)
+
+* **Execution Log**:
+```text
+══════════════════════════════════════════════════════════════════════════════
+session s8-2026-06-05_00-58-01  ─  query: Read /nonexistent/path.txt and tell me what's in it.
+══════════════════════════════════════════════════════════════════════════════
+[memory.read] 8 hit(s) visible to every skill this run
+[n:1] planner            complete (1.2s)
+[skills debug] formatter raw reply:
+{
+  "final_answer": "The requested file path /nonexistent/path.txt could not be found, and therefore its contents cannot be retrieved."
+}
+[skills debug] End of formatter raw reply
+[n:2] formatter          complete (0.7s)
+
+══════════════════════════════════════════════════════════════════════════════
+GATEWAY DATABASE CALLS LOGGED FOR SESSION: s8-2026-06-05_00-58-01
+══════════════════════════════════════════════════════════════════════════════
+[00:58:04] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=4591 out=117 (1234ms)
+[00:58:04] WORKER       | gemini_lite_3  | gemini-3.1-flash-lite          | OK    | in=804 out=35 (711ms)
+
+══════════════════════════════════════════════════════════════════════════════
+FINAL: The requested file path /nonexistent/path.txt could not be found, and therefore its contents cannot be retrieved.
+══════════════════════════════════════════════════════════════════════════════
+```
+
+### 5. Resumable Execution (SIGKILL Recovery)
+* **Query**: `For Lagos, Cairo, and Kinshasa, find current populations and growth rates and tell me which is growing fastest.`
+* **Graph Visualization (Kill Phase)**:
+![kill_graph](Queries%20and%20Logs/K.%20Resumable%20execution_kill.png)
+
+* **Execution Log (Kill Phase)**:
+```text
+[06/05/26 01:16:16] INFO     Processing request of type            server.py:727
+                             CallToolRequest                                    
+[06/05/26 01:16:16] INFO     Processing request of type            server.py:727
+                             CallToolRequest                                    
+[06/05/26 01:16:16] INFO     Processing request of type            server.py:727
+                             CallToolRequest                                    
+[06/05/26 01:16:17] INFO     response:                                lib.rs:444
+                             https://en.wikipedia.org/w/api.php?actio           
+                             n=opensearch&profile=fuzzy&limit=1&searc           
+                             h=current%20population%20and%20annual%20           
+                             growth%20rate%20of%20Lagos%202024%202025           
+                              200                                               
+[06/05/26 01:16:17] INFO     response:                                lib.rs:444
+                             https://en.wikipedia.org/w/api.php?actio           
+                             n=opensearch&profile=fuzzy&limit=1&searc           
+                             h=current%20population%20and%20annual%20           
+                             growth%20rate%20of%20Cairo%202024%202025           
+                              200                                               
+[06/05/26 01:16:17] INFO     response:                                lib.rs:444
+                             https://en.wikipedia.org/w/api.php?actio           
+                             n=opensearch&profile=fuzzy&limit=1&searc           
+                             h=current%20population%20and%20annual%20           
+                             growth%20rate%20of%20Kinshasa%202024%202           
+                             025 200                                            
+                    INFO     response:                                lib.rs:444
+                             https://grokipedia.com/api/typeahead?que           
+                             ry=current+population+and+annual+growth+           
+                             rate+of+Lagos+2024+2025&limit=1 200                
+                    INFO     response:                                lib.rs:444
+                             https://grokipedia.com/api/typeahead?que           
+                             ry=current+population+and+annual+growth+           
+                             rate+of+Cairo+2024+2025&limit=1 200                
+                    INFO     response:                                lib.rs:444
+                             https://grokipedia.com/api/typeahead?que           
+                             ry=current+population+and+annual+growth+           
+                             rate+of+Kinshasa+2024+2025&limit=1 200             
+                    INFO     HTTP Request: POST                  _client.py:1025
+                             https://html.duckduckgo.com/html/                  
+                             "HTTP/2 202 Accepted"                              
+                    INFO     response:                                lib.rs:444
+                             https://www.google.com/search?q=current+           
+                             population+and+annual+growth+rate+of+Kin           
+                             shasa+2024+2025&filter=1&start=0&hl=en-U           
+                             S&lr=lang_en&cr=countryUS 200                      
+                    INFO     Processing request of type            server.py:727
+                             ListToolsRequest                                   
+[06/05/26 01:16:18] INFO     response:                                lib.rs:444
+                             https://search.brave.com/search?q=curren           
+                             t+population+and+annual+growth+rate+of+L           
+                             agos+2024+2025&source=web 200                      
+                    INFO     Processing request of type            server.py:727
+                             ListToolsRequest                                   
+[06/05/26 01:16:18] INFO     response:                                lib.rs:444
+                             https://www.mojeek.com/search?q=current+           
+                             population+and+annual+growth+rate+of+Cai           
+                             ro+2024+2025 403                                   
+[06/05/26 01:16:18] INFO     Processing request of type            server.py:727
+                             CallToolRequest                                    
+                    INFO     Processing request of type            server.py:727
+                             CallToolRequest                                    
+[06/05/26 01:16:19] INFO     response:                                lib.rs:444
+                             https://www.google.com/search?q=current+           
+                             population+and+annual+growth+rate+of+Cai           
+                             ro+2024+2025&filter=1&start=0&hl=en-US&l           
+                             r=lang_en&cr=countryUS 200                         
+[06/05/26 01:16:19] INFO     response:                                lib.rs:444
+                             https://grokipedia.com/api/typeahead?que           
+                             ry=Kinshasa+current+population+2024+2025           
+                             +and+annual+growth+rate&limit=1 200                
+                    INFO     response:                                lib.rs:444
+                             https://en.wikipedia.org/w/api.php?actio           
+                             n=opensearch&profile=fuzzy&limit=1&searc           
+                             h=Kinshasa%20current%20population%202024           
+                             %202025%20and%20annual%20growth%20rate             
+                             200                                                
+[INIT].... → Crawl4AI 0.8.9 
+                    INFO     response:                                lib.rs:444
+                             https://www.mojeek.com/search?q=Kinshasa           
+                             +current+population+2024+2025+and+annual           
+                             +growth+rate 403                                   
+[06/05/26 01:16:20] INFO     response:                                lib.rs:444
+                             https://yandex.com/search/site/?text=cur           
+                             rent+population+and+annual+growth+rate+o           
+                             f+Cairo+2024+2025&web=1&searchid=8135107           
+                              200                                               
+                    INFO     Processing request of type            server.py:727
+                             ListToolsRequest                                   
+[06/05/26 01:16:20] INFO     response:                                lib.rs:444
+                             https://search.brave.com/search?q=Kinsha           
+                             sa+current+population+2024+2025+and+annu           
+                             al+growth+rate&source=web 200                      
+[FETCH]... ↓ https://www.macrotrends.net/global-metrics/cities/22007/lagos/population                             | ✓ | ⏱: 1.55s 
+[SCRAPE].. ◆ https://www.macrotrends.net/global-metrics/cities/22007/lagos/population                             | ✓ | ⏱: 0.04s 
+[COMPLETE] ● https://www.macrotrends.net/global-metrics/cities/22007/lagos/population                             | ✓ | ⏱: 1.60s 
+[06/05/26 01:16:21] INFO     Processing request of type            server.py:727
+                             CallToolRequest                                    
+[INIT].... → Crawl4AI 0.8.9
+[PROCESS TERMINATED BY SIGKILL]
+```
+
+* **Graph Visualization (Resume Phase)**:
+![resume_graph](Queries%20and%20Logs/K.%20Resumable%20execution_resumed.png)
+
+* **Execution Log (Resume Phase)**:
+```text
+══════════════════════════════════════════════════════════════════════════════
+session s8-2026-06-05_01-16-12  ─  query: For Lagos, Cairo, and Kinshasa, find current populations and growth rates and tell me which is growing fastest.
+══════════════════════════════════════════════════════════════════════════════
+[memory.read] 8 hit(s) visible to every skill this run
+[06/05/26 01:21:40] INFO     Processing request of type            server.py:727
+                             CallToolRequest                                    
+[06/05/26 01:21:41] INFO     response:                                lib.rs:444
+                             https://en.wikipedia.org/w/api.php?actio           
+                             n=opensearch&profile=fuzzy&limit=1&searc           
+                             h=current%20population%20and%20annual%20           
+                             growth%20rate%20of%20Cairo%202024%202025           
+                              200                                               
+                    INFO     response:                                lib.rs:444
+                             https://grokipedia.com/api/typeahead?que           
+                             ry=current+population+and+annual+growth+           
+                             rate+of+Cairo+2024+2025&limit=1 200                
+[06/05/26 01:21:42] INFO     response: https://www.startpage.com/ 200 lib.rs:444
+[06/05/26 01:21:43] INFO     response:                                lib.rs:444
+                             https://www.startpage.com/sp/search 200            
+                    INFO     Processing request of type            server.py:727
+                             ListToolsRequest                                   
+[06/05/26 01:21:44] INFO     Processing request of type            server.py:727
+                             CallToolRequest                                    
+[INIT].... → Crawl4AI 0.8.9 
+[FETCH]... ↓ https://www.macrotrends.net/global-metrics/cities/22812/cairo/population                             | ✓ | ⏱: 1.88s 
+[SCRAPE].. ◆ https://www.macrotrends.net/global-metrics/cities/22812/cairo/population                             | ✓ | ⏱: 0.01s 
+[COMPLETE] ● https://www.macrotrends.net/global-metrics/cities/22812/cairo/population                             | ✓ | ⏱: 1.91s 
+[n:3] researcher         complete (9.2s)
+[skills debug] coder raw reply:
+{
+  "code": "import json\n\ncities = [\n    {\"name\": \"Lagos\", \"population\": 17804000, \"growth_rate\": 3.78},\n    {\"name\": \"Cairo\", \"population\": 23540000, \"growth_rate\": 2.0},\n    {\"name\": \"Kinshasa\", \"population\": 18500000, \"growth_rate\": 4.38}\n]\n\ndef identify_fastest_growth(city_data):\n    fastest = max(city_data, key=lambda x: x['growth_rate'])\n    return fastest\n\nresults = identify_fastest_growth(cities)\n\nprint(f\"City Data:\")\nfor city in cities:\n    print(f\"{city['name']}: Population {city['population']:,}, Growth Rate {city['growth_rate']}%\")\n\nprint(f\"\\nThe city growing the fastest is {results['name']} with a growth rate of {results['growth_rate']}%.\")",
+  "rationale": "I extracted the population and growth rate values from the inputs, stored them in a list of dictionaries, and used the max() function with a lambda key to identify the city with the highest growth rate."
+}
+[skills debug] End of coder raw reply
+[n:5] coder              complete (1.3s)
+[n:6] sandbox_executor   complete (0.0s)
+[skills debug] formatter raw reply:
+{
+  "final_answer": "Based on current data, here are the population statistics for the three cities:\n\n* Lagos: 17,804,000 population, 3.78% growth rate.\n* Cairo: 23,540,000 population, 2.0% growth rate.\n* Kinshasa: 18,500,000 population, 4.38% growth rate.\n\nKinshasa is currently the fastest-growing city among the three, with an annual growth rate of 4.38%."
+}
+[skills debug] End of formatter raw reply
+[n:7] formatter          complete (1.1s)
+
+══════════════════════════════════════════════════════════════════════════════
+GATEWAY DATABASE CALLS LOGGED FOR SESSION: s8-2026-06-05_01-16-12
+══════════════════════════════════════════════════════════════════════════════
+[01:16:15] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=1958 out=449 (2062ms)
+[01:16:16] WORKER       | gemini_lite_4  | gemini-3.1-flash-lite          | OK    | in=901 out=33 (653ms)
+[01:16:16] WORKER       | gemini_lite_3  | gemini-3.1-flash-lite          | OK    | in=901 out=33 (666ms)
+[01:16:16] WORKER       | gemini_lite_5  | gemini-3.1-flash-lite          | OK    | in=903 out=41 (663ms)
+[01:16:18] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=1317 out=40 (817ms)
+[01:16:18] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=1515 out=40 (827ms)
+[01:16:21] WORKER       | gemini_lite_3  | gemini-3.1-flash-lite          | OK    | in=1395 out=30 (800ms)
+[01:16:22] WORKER       | gemini_lite_4  | gemini-3.1-flash-lite          | OK    | in=1701 out=250 (1390ms)
+[01:16:22] WORKER       | gemini_lite_5  | gemini-3.1-flash-lite          | OK    | in=4499 out=242 (1447ms)
+[01:21:40] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=904 out=39 (570ms)
+[01:21:44] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=1270 out=40 (560ms)
+[01:21:49] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=2509 out=192 (1435ms)
+[01:21:50] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=1430 out=305 (1309ms)
+[01:21:51] WORKER       | gemini_lite_3  | gemini-3.1-flash-lite          | OK    | in=1033 out=137 (1046ms)
+
+══════════════════════════════════════════════════════════════════════════════
+FINAL: Based on current data, here are the population statistics for the three cities:
+
+* Lagos: 17,804,000 population, 3.78% growth rate.
+* Cairo: 23,540,000 population, 2.0% growth rate.
+* Kinshasa: 18,500,000 population, 4.38% growth rate.
+
+Kinshasa is currently the fastest-growing city among the three, with an annual growth rate of 4.38%.
+══════════════════════════════════════════════════════════════════════════════
+```
+
+
+### 6. Critic verification (Pass run)
+* **Query**: `Fetch https://www.iplt20.com/matches/points-table and find the team who got finished top of the table. Verify the details extracted are correct.`
+
+The planner explicitly emits a critic node to verify the details. We'll see how the critic evaluates and provides a success example of the same.
+
+* **Graph Visualization**:
+![L1 Graph](Queries%20and%20Logs/L1.%20Critic%20verification%20(Pass%20run).png)
+
+* **Execution Log**:
+```text
+session s8-2026-06-05_15-48-59  ─  query: Fetch https://www.iplt20.com/matches/points-table and find the team who got finished top of the table. Verify the details extracted are correct.
+[memory.read] 8 hit(s) visible to every skill this run
+[n:1] planner            complete (1.7s)
+[INIT].... → Crawl4AI 0.8.9 
+[FETCH]... ↓ https://www.iplt20.com/matches/points-table                                                          | ✓ | ⏱: 2.28s 
+[SCRAPE].. ◆ https://www.iplt20.com/matches/points-table                                                          | ✓ | ⏱: 0.03s 
+[COMPLETE] ● https://www.iplt20.com/matches/points-table                                                          | ✓ | ⏱: 2.32s 
+[n:2] researcher         complete (7.0s)
+[n:3] critic             complete (1.2s)
+[n:4] formatter          complete (1.5s)
+
+GATEWAY DATABASE CALLS LOGGED FOR SESSION: s8-2026-06-05_15-48-59
+[15:49:02] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=3569 out=256 (1697ms)
+[15:49:04] WORKER       | gemini_lite_3  | gemini-3.1-flash-lite          | OK    | in=2616 out=31 (1350ms)
+[15:49:09] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=8043 out=180 (1374ms)
+[15:49:10] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=2501 out=42 (1153ms)
+[15:49:12] WORKER       | gemini_lite_3  | gemini-3.1-flash-lite          | OK    | in=1223 out=100 (1534ms)
+
+FINAL: According to the official IPL 2026 points table (https://www.iplt20.com/matches/points-table), Royal Challengers Bengaluru (RCB) finished at the top of the standings. They achieved this position by securing 18 points from 14 matches, consisting of 9 wins and 5 losses, and maintaining a Net Run Rate (NRR) of 0.783.
+```
+
+---
+
+### 7. Critic verification (Pass and Fail-Recover runs)
+* **Query**: `Fetch https://www.iplt20.com/matches/results and Extract the date and result of the recent match between RCB and GT. Have a critic verify the details extracted are correct.`
+
+The planner emits a critic node to verify the details. We'll also see how, when a critic node fails, the planner recovers from it, creates a new graph, and re-executes the plan.
+
+* **Graph Visualizations**:
+![L2 Graph Part 1](Queries%20and%20Logs/L2.%20Critic%20verification%20(Pass%20and%20Fail-Recover%20runs)_1.png)
+![L2 Graph Part 2](Queries%20and%20Logs/L2.%20Critic%20verification%20(Pass%20and%20Fail-Recover%20runs)_2.png)
+
+* **Execution Log**:
+```text
+session s8-2026-06-05_15-30-11  ─  query: Fetch https://www.iplt20.com/matches/results and Extract the date and result of the recent match between RCB and GT. Have a critic verify the details extracted are correct.
+[memory.read] 8 hit(s) visible to every skill this run
+[n:1] planner            complete (1.8s)
+[INIT].... → Crawl4AI 0.8.9 
+[FETCH]... ↓ https://www.iplt20.com/matches/results                                                               | ✓ | ⏱: 1.60s 
+[SCRAPE].. ◆ https://www.iplt20.com/matches/results                                                               | ✓ | ⏱: 0.03s 
+[COMPLETE] ● https://www.iplt20.com/matches/results                                                               | ✓ | ⏱: 1.64s 
+[n:2] researcher         complete (13.5s)
+[n:3] distiller          complete (1.2s)
+[n:4] critic             complete (1.7s)
+  ↪ critic-fail recovery: planner node n:6 for n:3
+[n:6] planner            complete (3.5s)
+[INIT].... → Crawl4AI 0.8.9 
+[FETCH]... ↓ https://www.iplt20.com/matches/results                                                               | ✓ | ⏱: 1.61s 
+[SCRAPE].. ◆ https://www.iplt20.com/matches/results                                                               | ✓ | ⏱: 0.02s 
+[COMPLETE] ● https://www.iplt20.com/matches/results                                                               | ✓ | ⏱: 1.64s 
+[n:7] researcher         complete (14.5s)
+[n:8] critic             complete (1.0s)
+  ↪ critic-fail recovery: planner node n:10 for n:7
+[n:10] planner            complete (1.8s)
+[INIT].... → Crawl4AI 0.8.9 
+[FETCH]... ↓ https://www.iplt20.com/matches/results                                                               | ✓ | ⏱: 1.38s 
+[SCRAPE].. ◆ https://www.iplt20.com/matches/results                                                               | ✓ | ⏱: 0.03s 
+[COMPLETE] ● https://www.iplt20.com/matches/results                                                               | ✓ | ⏱: 1.42s 
+[n:11] researcher         complete (14.9s)
+[n:12] distiller          complete (1.3s)
+[n:13] critic             complete (0.7s)
+  ↪ critic-fail recovery: planner node n:16 for n:12
+[n:15] critic             complete (1.8s)
+  ↪ critic-fail on n:12 already recovered once; CAP HIT — branch skipped, final will reflect missing data
+[n:16] planner            complete (1.5s)
+[INIT].... → Crawl4AI 0.8.9 
+[FETCH]... ↓ https://www.iplt20.com/matches/results                                                               | ✓ | ⏱: 1.38s 
+[SCRAPE].. ◆ https://www.iplt20.com/matches/results                                                               | ✓ | ⏱: 0.03s 
+[COMPLETE] ● https://www.iplt20.com/matches/results                                                               | ✓ | ⏱: 1.41s 
+[n:17] researcher         complete (11.9s)
+[n:18] critic             complete (4.0s)
+[n:19] formatter          complete (1.1s)
+
+[flow] WARNING: critic-fail cap hit on 1 branch(es): n:12. The final answer reflects missing data from these branches because the Critic rejected the re-planned output too.
+
+GATEWAY DATABASE CALLS LOGGED FOR SESSION: s8-2026-06-05_15-30-11
+[15:30:14] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=2630 out=296 (1826ms)
+[15:30:16] WORKER       | gemini_lite_3  | gemini-3.1-flash-lite          | OK    | in=1671 out=29 (1581ms)
+[15:30:20] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=5885 out=35 (837ms)
+[15:30:23] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=6651 out=55 (1145ms)
+[15:30:27] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=15818 out=240 (1709ms)
+[15:30:28] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=1708 out=72 (1140ms)
+[15:30:30] WORKER       | gemini_lite_3  | gemini-3.1-flash-lite          | OK    | in=1443 out=46 (1666ms)
+[15:30:33] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=2675 out=242 (3478ms)
+[15:30:34] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=1675 out=29 (606ms)
+[15:30:38] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=5889 out=25 (935ms)
+[15:30:48] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=6659 out=334 (5251ms)
+[15:30:49] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=1714 out=47 (949ms)
+[15:30:51] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=2676 out=327 (1794ms)
+[15:30:52] WORKER       | gemini_lite_3  | gemini-3.1-flash-lite          | OK    | in=1686 out=29 (913ms)
+[15:30:55] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=5900 out=26 (1138ms)
+[15:31:06] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=6590 out=451 (5389ms)
+[15:31:07] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=1925 out=99 (1324ms)
+[15:31:08] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=1479 out=43 (711ms)
+[15:31:09] WORKER       | gemini_lite_3  | gemini-3.1-flash-lite          | OK    | in=1451 out=72 (1762ms)
+[15:31:10] WORKER       | gemini_lite_4  | gemini-3.1-flash-lite          | OK    | in=2674 out=246 (1469ms)
+[15:31:11] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=1679 out=29 (566ms)
+[15:31:14] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=5893 out=23 (889ms)
+[15:31:18] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=6641 out=27 (896ms)
+[15:31:22] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=7488 out=327 (1902ms)
+[15:31:26] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=1710 out=61 (4040ms)
+[15:31:02] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=1032 out=69 (1053ms)
+
+FINAL: The most recent match between Royal Challengers Bengaluru (RCB) and Gujarat Titans (GT) was the IPL 2026 final held on May 31, 2026. The match concluded with a victory for Royal Challengers Bengaluru, as verified by the critic.
+```
 
 ---
 
@@ -120,3 +611,6 @@ The Shopping Agent V3 executes in three distinct, highly optimized phases:
    ```
 
 Open your browser to `http://localhost:8000` to interact with the Shopping Portal, search for products, and observe the live DAG execution logs!
+
+
+

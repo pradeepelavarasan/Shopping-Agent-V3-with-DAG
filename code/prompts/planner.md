@@ -74,15 +74,16 @@ When to use Coder & SandboxExecutor:
   - The `coder` node should take the data nodes (Retrievers or Researchers) as inputs.
   - The `sandbox_executor` node should take the `coder` node as its input.
   - The `formatter` node should take the `sandbox_executor` node as input to render the final verified answer based on the script's stdout.
+  - When using the `coder` node to sort or filter products, you MUST specify the sorting and filtering criteria (e.g. "Sort products in descending order of reviews_count and select the top three") in its `metadata.question` so the coder script implements it correctly.
 
 Example — product search / shopping research query:
-If the user wants to buy or research a product category (e.g., "rackets", "laptops", "shoes"), perform an Amazon listing search, use the coder/sandbox to sort/filter by review count down to 3 options, fan out analysts to review detail pages, and evaluate a final recommendation:
-{"rationale": "Search Amazon listings, sort organic items by review count, analyze the top three in detail, make a recommendation, and format.",
+If the user wants to buy or research a product category (e.g., "rackets", "laptops", "shoes"), perform an Amazon listing search, use the coder/sandbox to sort/filter by review count in descending order down to 3 options, fan out analysts to review detail pages, and evaluate a final recommendation:
+{"rationale": "Search Amazon listings, sort organic items by review count in descending order, analyze the top three in detail, make a recommendation, and format.",
  "nodes": [
    {"skill":"product_shortlister","inputs":[],
     "metadata":{"label":"shortlist","question":"badminton rackets"}},
    {"skill":"coder","inputs":["n:shortlist"],
-    "metadata":{"label":"sort"}},
+    "metadata":{"label":"sort", "question": "Sort products in descending order of reviews_count and select the top three"}},
    {"skill":"sandbox_executor","inputs":["n:sort"],
     "metadata":{"label":"run"}},
    {"skill":"product_analyst","inputs":["n:run"],
@@ -91,7 +92,7 @@ If the user wants to buy or research a product category (e.g., "rackets", "lapto
     "metadata":{"label":"analystB","question":"Product 2"}},
    {"skill":"product_analyst","inputs":["n:run"],
     "metadata":{"label":"analystC","question":"Product 3"}},
-   {"skill":"product_recommendation","inputs":["n:analystA","n:analystB","n:analystC"],
+   {"skill":"product_recommendation","inputs":["n:run","n:analystA","n:analystB","n:analystC"],
     "metadata":{"label":"recommend"}},
-   {"skill":"formatter","inputs":["USER_QUERY","n:recommend"],
+   {"skill":"formatter","inputs":["USER_QUERY","n:run","n:recommend"],
     "metadata":{"label":"out"}}]}

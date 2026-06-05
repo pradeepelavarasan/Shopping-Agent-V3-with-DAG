@@ -165,16 +165,45 @@ class Graph:
                 nid = self.add_node(child_skill, inputs=[src_nid])
                 added.append(nid)
 
-        # Critic auto-insertion: place a Critic before each newly-added
-        # child so the child only runs after Critic passes.
-        if src_def.critic and added:
-            for child_nid in list(added):
-                self.g.remove_edge(src_nid, child_nid)
+        # Critic auto-insertion: ONE critic gates ALL successors of this node.
+        # This covers two cases:
+        #   (a) newly-added children in `added` (from successors / internal_successors)
+        #   (b) pre-wired children already in the graph (Planner planned them
+        #       before this node ran, e.g. sandbox_executor → product_analysts).
+        #
+        # Deliberately only ONE critic is inserted regardless of how many
+        # children exist. One LLM verdict, one recovery on fail.
+        if src_def.critic:
+            # Collect every current non-critic outgoing neighbour of src_nid.
+            all_children = [
+                c for c in self.g.successors(src_nid)
+                if self.g.nodes[c]["skill"] != "critic"
+            ]
+            if all_children:
+                # Remove all src → child edges.
+                for child_nid in all_children:
+                    self.g.remove_edge(src_nid, child_nid)
+
+                # Insert ONE critic; its recovery target is the first child.
+                first_child = all_children[0]
+                critic_meta: dict = {
+                    "target": src_nid,
+                    "child": first_child,
+                    "all_children": all_children,
+                }
+                # Propagate a scoped verification question if the skill config
+                # provided one (via `critic_question`). This prevents the
+                # generic critic from inventing full-schema expectations.
+                cq = getattr(src_def, "critic_question", None)
+                if cq:
+                    critic_meta["question"] = cq
                 critic_nid = self.add_node(
                     "critic", inputs=[src_nid],
-                    metadata={"target": src_nid, "child": child_nid},
+                    metadata=critic_meta,
                 )
-                self.g.add_edge(critic_nid, child_nid)
+                # Wire critic → every child so they all wait for the verdict.
+                for child_nid in all_children:
+                    self.g.add_edge(critic_nid, child_nid)
                 added.append(critic_nid)
 
         return added
@@ -267,8 +296,6 @@ class Executor:
                       + (f"  err={result.error[:80]}" if result.error else ""))
 
                 if result.success:
-                    if graph.g.nodes[nid]["skill"] == "product_shortlister":
-                        print(f"\n[DEBUG] product_shortlister output for {nid}:\n{json.dumps(result.output, indent=2)}\n")
                     if graph.g.nodes[nid]["skill"] == "critic":
                         if handle_critic_verdict(nid, result, graph,
                                                  recovered_branches,
@@ -280,6 +307,8 @@ class Executor:
                         fa = result.output.get("final_answer")
                         if isinstance(fa, str) and fa.strip():
                             formatter_answer = fa
+                        elif "products" in result.output:
+                            formatter_answer = json.dumps(result.output)
                 else:
                     failed_skill = graph.g.nodes[nid]["skill"]
                     failed_node_meta = graph.g.nodes[nid].get("metadata") or {}
@@ -354,20 +383,20 @@ class Executor:
 
     async def _run_one(self, nid: str, graph: Graph, sid: str, query: str,
                        store: SessionStore, memory_hits: list) -> tuple[str, AgentResult, str]:
-        skill_name = graph.g.nodes[nid]["skill"]
-        skill = self.registry.get(skill_name)
-        fr = graph.g.nodes[nid].get("metadata", {}).get("failure_report")
-        store.write_node(NodeState(node_id=nid, skill=skill_name, status="running",
-                                   inputs=graph.g.nodes[nid]["inputs"],
-                                   started_at=time.time()))
-        try:
-            result, prompt = await run_skill(skill, nid, graph.g.nodes, sid, query, fr,
-                                             memory_hits=memory_hits)
-        except Exception as e:  # pragma: no cover - dispatcher fault path
-            result = AgentResult(success=False, agent_name=skill_name,
-                                 error=f"exception: {type(e).__name__}: {e}")
-            prompt = "(exception before prompt-render)"
-        return nid, result, prompt
+         skill_name = graph.g.nodes[nid]["skill"]
+         skill = self.registry.get(skill_name)
+         fr = graph.g.nodes[nid].get("metadata", {}).get("failure_report")
+         store.write_node(NodeState(node_id=nid, skill=skill_name, status="running",
+                                    inputs=graph.g.nodes[nid]["inputs"],
+                                    started_at=time.time()))
+         try:
+             result, prompt = await run_skill(skill, nid, graph.g.nodes, sid, query, fr,
+                                              memory_hits=memory_hits)
+         except Exception as e:  # pragma: no cover - dispatcher fault path
+             result = AgentResult(success=False, agent_name=skill_name,
+                                  error=f"exception: {type(e).__name__}: {e}")
+             prompt = "(exception before prompt-render)"
+         return nid, result, prompt
 
 
 # ── CLI ──────────────────────────────────────────────────────────────────────
@@ -402,6 +431,8 @@ def load_queries() -> dict[str, tuple[str, str]]:
 
 
 def main() -> None:
+    import os
+    import threading
     from pathlib import Path
     args = sys.argv[1:]
     resume_sid: str | None = None
@@ -472,10 +503,8 @@ def main() -> None:
                 os.close(stdout_pipe_w)
                 os.close(stderr_pipe_w)
 
-                stop_event = threading.Event()
-
                 def forward_loop(pipe_r, orig_fd):
-                    while not stop_event.is_set():
+                    while True:
                         try:
                             # Read chunks of data
                             data = os.read(pipe_r, 4096)
@@ -488,6 +517,10 @@ def main() -> None:
                             log_file.flush()
                         except Exception:
                             break
+                    try:
+                        os.close(pipe_r)
+                    except OSError:
+                        pass
 
                 t1 = threading.Thread(target=forward_loop, args=(stdout_pipe_r, orig_stdout_fd), daemon=True)
                 t2 = threading.Thread(target=forward_loop, args=(stderr_pipe_r, orig_stderr_fd), daemon=True)
@@ -497,25 +530,26 @@ def main() -> None:
                 try:
                     asyncio.run(Executor().run(query_text))
                 finally:
-                    # Restore original FDs
+                    # Flush python buffers to write remaining logs to the pipe
+                    sys.stdout.flush()
+                    sys.stderr.flush()
+                    # Restore original FDs (closes write ends of the pipes)
                     os.dup2(orig_stdout_fd, 1)
                     os.dup2(orig_stderr_fd, 2)
                     os.close(orig_stdout_fd)
                     os.close(orig_stderr_fd)
                     
-                    # Close read pipes to stop threads
-                    stop_event.set()
-                    try:
-                        os.close(stdout_pipe_r)
-                    except OSError:
-                        pass
-                    try:
-                        os.close(stderr_pipe_r)
-                    except OSError:
-                        pass
+                    # Wait for forwarding threads to finish reading remaining buffered data
+                    t1.join(timeout=2.0)
+                    t2.join(timeout=2.0)
                     
-                    t1.join(timeout=1.0)
-                    t2.join(timeout=1.0)
+                    # In case the threads timed out, force close the read pipes
+                    for fd in (stdout_pipe_r, stderr_pipe_r):
+                        try:
+                            os.close(fd)
+                        except OSError:
+                            pass
+                    
                     log_file.close()
                 return
             else:
@@ -532,7 +566,6 @@ def main() -> None:
     # Pre-compute the session ID (same formula used inside Executor.run) so we
     # can create the log file before the run starts.  We then tee stdout+stderr
     # to  state/sessions/<sid>/run.log  alongside graph.json and graph.html.
-    import os, threading
     from pathlib import Path as _Path
 
     sid_for_log = resume_sid or time.strftime("s8-%Y-%m-%d_%H-%M-%S")
@@ -540,6 +573,10 @@ def main() -> None:
     log_dir = sessions_root / sid_for_log
     log_dir.mkdir(parents=True, exist_ok=True)
     log_path = log_dir / "run.log"
+
+    # Print session ID to real stdout BEFORE the pipe redirect, so the parent
+    # process (shopping_agent/server.py) can parse it from subprocess stdout.
+    print(f"[flow] session {sid_for_log}", flush=True)
 
     sys.stderr.write(f"\n[logger] Saving session log to: {log_path}\n")
     sys.stderr.flush()
@@ -562,10 +599,8 @@ def main() -> None:
     os.close(stdout_pipe_w)
     os.close(stderr_pipe_w)
 
-    stop_event = threading.Event()
-
     def _forward(pipe_r, orig_fd):
-        while not stop_event.is_set():
+        while True:
             try:
                 data = os.read(pipe_r, 4096)
                 if not data:
@@ -575,6 +610,10 @@ def main() -> None:
                 log_file.flush()
             except Exception:
                 break
+        try:
+            os.close(pipe_r)
+        except OSError:
+            pass
 
     t1 = threading.Thread(target=_forward, args=(stdout_pipe_r, orig_stdout_fd), daemon=True)
     t2 = threading.Thread(target=_forward, args=(stderr_pipe_r, orig_stderr_fd), daemon=True)
@@ -584,18 +623,22 @@ def main() -> None:
     try:
         asyncio.run(Executor().run(query, session_id=sid_for_log, resume=bool(resume_sid)))
     finally:
+        # Flush python buffers to write remaining logs to the pipe
+        sys.stdout.flush()
+        sys.stderr.flush()
         os.dup2(orig_stdout_fd, 1)
         os.dup2(orig_stderr_fd, 2)
         os.close(orig_stdout_fd)
         os.close(orig_stderr_fd)
-        stop_event.set()
+        
+        t1.join(timeout=2.0)
+        t2.join(timeout=2.0)
+        
         for fd in (stdout_pipe_r, stderr_pipe_r):
             try:
                 os.close(fd)
             except OSError:
                 pass
-        t1.join(timeout=1.0)
-        t2.join(timeout=1.0)
         log_file.close()
 
 

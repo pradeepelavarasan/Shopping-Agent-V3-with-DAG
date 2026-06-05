@@ -12,6 +12,9 @@ SKILL_COLORS = {
     "retriever": {"background": "#145a32", "border": "#1e8449", "color": "#ffffff"},
     "summariser": {"background": "#7d6608", "border": "#d4ac0d", "color": "#ffffff"},
     "distiller": {"background": "#1f1f2e", "border": "#4d4d70", "color": "#ffffff"},
+    "product_shortlister": {"background": "#1a5276", "border": "#2980b9", "color": "#ffffff"},
+    "product_analyst": {"background": "#1d6a39", "border": "#27ae60", "color": "#ffffff"},
+    "product_recommendation": {"background": "#6e2f8f", "border": "#9b59b6", "color": "#ffffff"},
 }
 DEFAULT_COLORS = {"background": "#2c3e50", "border": "#34495e", "color": "#ffffff"}
 

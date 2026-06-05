@@ -53,3 +53,19 @@ Comments:
 - The graph file (graph.pkl) will persist state, resetting any "running" node to "pending" to complete the flow gracefully upon resume.
 - Expected outcome: Lagos is growing fastest at approx 3.78%.
 -->
+
+## L1. Critic verification (Pass run)
+Fetch https://www.iplt20.com/matches/points-table and find the team who got finished top of the table. Verify the details extracted are correct. 
+
+<!--
+Comments:
+- The planner explicitly emits a critic node to verify the details. We'll see how the critic evaluates and provides a success example of the same.
+-->
+
+## L2. Critic verification (Pass and Fail-Recover runs)
+Fetch https://www.iplt20.com/matches/results and Extract the date and result of the recent match between RCB and GT. Have a critic verify the details extracted are correct.
+
+<!--
+Comments:
+- The planner emits a critic node to verify the details. We'll also see how, when a critic node fails, the planner recovers from it, creates a new graph, and re-executes the plan.
+-->

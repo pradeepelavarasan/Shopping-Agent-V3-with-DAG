@@ -1,0 +1,31 @@
+
+══════════════════════════════════════════════════════════════════════════════
+session s8-2026-06-05_15-48-59  ─  query: Fetch https://www.iplt20.com/matches/points-table and find the team who got finished top of the table. Verify the details extracted are correct.
+══════════════════════════════════════════════════════════════════════════════
+[memory.read] 8 hit(s) visible to every skill this run
+[n:1] planner            complete (1.7s)
+[06/05/26 15:49:04] INFO     Processing request of type            server.py:727
+                             CallToolRequest                                    
+[INIT].... → Crawl4AI 0.8.9 
+[FETCH]... ↓ https://www.iplt20.com/matches/points-table                                                          | ✓ | ⏱: 2.28s 
+[SCRAPE].. ◆ https://www.iplt20.com/matches/points-table                                                          | ✓ | ⏱: 0.03s 
+[COMPLETE] ● https://www.iplt20.com/matches/points-table                                                          | ✓ | ⏱: 2.32s 
+[06/05/26 15:49:08] INFO     Processing request of type            server.py:727
+                             ListToolsRequest                                   
+[n:2] researcher         complete (7.0s)
+[n:3] critic             complete (1.2s)
+[n:4] formatter          complete (1.5s)
+
+══════════════════════════════════════════════════════════════════════════════
+GATEWAY DATABASE CALLS LOGGED FOR SESSION: s8-2026-06-05_15-48-59
+══════════════════════════════════════════════════════════════════════════════
+[15:49:02] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=3569 out=256 (1697ms)
+[15:49:04] WORKER       | gemini_lite_3  | gemini-3.1-flash-lite          | OK    | in=2616 out=31 (1350ms)
+[15:49:09] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=8043 out=180 (1374ms)
+[15:49:10] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=2501 out=42 (1153ms)
+[15:49:12] WORKER       | gemini_lite_3  | gemini-3.1-flash-lite          | OK    | in=1223 out=100 (1534ms)
+
+══════════════════════════════════════════════════════════════════════════════
+FINAL: According to the official IPL 2026 points table (https://www.iplt20.com/matches/points-table), Royal Challengers Bengaluru (RCB) finished at the top of the standings. They achieved this position by securing 18 points from 14 matches, consisting of 9 wins and 5 losses, and maintaining a Net Run Rate (NRR) of 0.783.
+══════════════════════════════════════════════════════════════════════════════
+

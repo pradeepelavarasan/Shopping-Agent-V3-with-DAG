@@ -29,59 +29,59 @@ planner:
   prompt: prompts/planner.md
   tools_allowed: []
   temperature: 1        # decompositions need a little breathing room
-  max_tokens: 1500
+  max_tokens: 4000
   description: Decomposes user queries into the initial DAG and synthesises recovery subgraphs on node failure.
 
 retriever:
   prompt: prompts/retriever.md
   tools_allowed: [search_knowledge]
   temperature: 1        # retrieval is mostly deterministic
-  max_tokens: 1200
+  max_tokens: 4000
   description: Searches Memory and the FAISS index for material relevant to a query.
 
 researcher:
   prompt: prompts/researcher.md
   tools_allowed: [web_search, fetch_url]
   temperature: 1        # exploratory; let the model choose phrasings
-  max_tokens: 2500
+  max_tokens: 4000
   description: Performs multi-step web research and produces normalised text outputs.
 
 distiller:
   prompt: prompts/distiller.md
   critic: true
   temperature: 1        # extraction; almost-zero
-  max_tokens: 1200
+  max_tokens: 4000
   description: Extracts structured fields from raw text or page content.
 
 summariser:
   prompt: prompts/summariser.md
   temperature: 1
-  max_tokens: 1200
+  max_tokens: 4000
   description: Condenses long content into a short form.
 
 critic:
   prompt: prompts/critic.md
   temperature: 1         # pass/fail; we want determinism
-  max_tokens: 500
+  max_tokens: 4000
   description: Evaluates an upstream node's output; emits pass or fail with rationale.
 
 formatter:
   prompt: prompts/formatter.md
   temperature: 1
-  max_tokens: 1500
+  max_tokens: 4000
   description: Renders the final answer for the user. Conventional terminal node — its output.final_answer is what the executor returns.
 
 sandbox_executor:
   prompt: prompts/sandbox_executor.md
   temperature: 1
-  max_tokens: 400
+  max_tokens: 4000
   description: Runs code from a Coder node in the sandbox and returns stdout, stderr, exit code, and any generated files.
 
 coder:
   prompt: prompts/coder.md
   internal_successors: [sandbox_executor]
   temperature: 1
-  max_tokens: 1500
+  max_tokens: 4000
   description: Student assignment for Session 8. Emits Python code; the orchestrator hands it to sandbox_executor next.
 
 product_shortlister:
@@ -95,19 +95,20 @@ product_analyst:
   prompt: prompts/product_analyst.md
   tools_allowed: [playwright_fetch]
   temperature: 0.2
-  max_tokens: 2048
+  max_tokens: 4000
   description: Analyzes specific details, reviews, and sentiment for a single fanned-out product.
 
 product_recommendation:
   prompt: prompts/product_recommendation.md
   tools_allowed: []
   temperature: 0.2
-  max_tokens: 2048
+  max_tokens: 4000
+#  critic: true
   description: Compares product evaluations, selects a Top Recommendation, and writes the overall reasoning summary.
 
 # Browser skill - placeholder for Session 9; not implemented yet.
 #browser:
 #  prompt: prompts/browser.md
 #  temperature: 1
-#  max_tokens: 1500
+#  max_tokens: 4000
 #  description: STUB. Reserved for Session 9.

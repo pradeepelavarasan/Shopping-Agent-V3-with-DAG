@@ -1,0 +1,97 @@
+[06/05/26 01:16:16] INFO     Processing request of type            server.py:727
+                             CallToolRequest                                    
+[06/05/26 01:16:16] INFO     Processing request of type            server.py:727
+                             CallToolRequest                                    
+[06/05/26 01:16:16] INFO     Processing request of type            server.py:727
+                             CallToolRequest                                    
+[06/05/26 01:16:17] INFO     response:                                lib.rs:444
+                             https://en.wikipedia.org/w/api.php?actio           
+                             n=opensearch&profile=fuzzy&limit=1&searc           
+                             h=current%20population%20and%20annual%20           
+                             growth%20rate%20of%20Lagos%202024%202025           
+                              200                                               
+[06/05/26 01:16:17] INFO     response:                                lib.rs:444
+                             https://en.wikipedia.org/w/api.php?actio           
+                             n=opensearch&profile=fuzzy&limit=1&searc           
+                             h=current%20population%20and%20annual%20           
+                             growth%20rate%20of%20Cairo%202024%202025           
+                              200                                               
+[06/05/26 01:16:17] INFO     response:                                lib.rs:444
+                             https://en.wikipedia.org/w/api.php?actio           
+                             n=opensearch&profile=fuzzy&limit=1&searc           
+                             h=current%20population%20and%20annual%20           
+                             growth%20rate%20of%20Kinshasa%202024%202           
+                             025 200                                            
+                    INFO     response:                                lib.rs:444
+                             https://grokipedia.com/api/typeahead?que           
+                             ry=current+population+and+annual+growth+           
+                             rate+of+Lagos+2024+2025&limit=1 200                
+                    INFO     response:                                lib.rs:444
+                             https://grokipedia.com/api/typeahead?que           
+                             ry=current+population+and+annual+growth+           
+                             rate+of+Cairo+2024+2025&limit=1 200                
+                    INFO     response:                                lib.rs:444
+                             https://grokipedia.com/api/typeahead?que           
+                             ry=current+population+and+annual+growth+           
+                             rate+of+Kinshasa+2024+2025&limit=1 200             
+                    INFO     HTTP Request: POST                  _client.py:1025
+                             https://html.duckduckgo.com/html/                  
+                             "HTTP/2 202 Accepted"                              
+                    INFO     response:                                lib.rs:444
+                             https://www.google.com/search?q=current+           
+                             population+and+annual+growth+rate+of+Kin           
+                             shasa+2024+2025&filter=1&start=0&hl=en-U           
+                             S&lr=lang_en&cr=countryUS 200                      
+                    INFO     Processing request of type            server.py:727
+                             ListToolsRequest                                   
+[06/05/26 01:16:18] INFO     response:                                lib.rs:444
+                             https://search.brave.com/search?q=curren           
+                             t+population+and+annual+growth+rate+of+L           
+                             agos+2024+2025&source=web 200                      
+                    INFO     Processing request of type            server.py:727
+                             ListToolsRequest                                   
+[06/05/26 01:16:18] INFO     response:                                lib.rs:444
+                             https://www.mojeek.com/search?q=current+           
+                             population+and+annual+growth+rate+of+Cai           
+                             ro+2024+2025 403                                   
+[06/05/26 01:16:18] INFO     Processing request of type            server.py:727
+                             CallToolRequest                                    
+                    INFO     Processing request of type            server.py:727
+                             CallToolRequest                                    
+[06/05/26 01:16:19] INFO     response:                                lib.rs:444
+                             https://www.google.com/search?q=current+           
+                             population+and+annual+growth+rate+of+Cai           
+                             ro+2024+2025&filter=1&start=0&hl=en-US&l           
+                             r=lang_en&cr=countryUS 200                         
+[06/05/26 01:16:19] INFO     response:                                lib.rs:444
+                             https://grokipedia.com/api/typeahead?que           
+                             ry=Kinshasa+current+population+2024+2025           
+                             +and+annual+growth+rate&limit=1 200                
+                    INFO     response:                                lib.rs:444
+                             https://en.wikipedia.org/w/api.php?actio           
+                             n=opensearch&profile=fuzzy&limit=1&searc           
+                             h=Kinshasa%20current%20population%202024           
+                             %202025%20and%20annual%20growth%20rate             
+                             200                                                
+[INIT].... → Crawl4AI 0.8.9 
+                    INFO     response:                                lib.rs:444
+                             https://www.mojeek.com/search?q=Kinshasa           
+                             +current+population+2024+2025+and+annual           
+                             +growth+rate 403                                   
+[06/05/26 01:16:20] INFO     response:                                lib.rs:444
+                             https://yandex.com/search/site/?text=cur           
+                             rent+population+and+annual+growth+rate+o           
+                             f+Cairo+2024+2025&web=1&searchid=8135107           
+                              200                                               
+                    INFO     Processing request of type            server.py:727
+                             ListToolsRequest                                   
+[06/05/26 01:16:20] INFO     response:                                lib.rs:444
+                             https://search.brave.com/search?q=Kinsha           
+                             sa+current+population+2024+2025+and+annu           
+                             al+growth+rate&source=web 200                      
+[FETCH]... ↓ https://www.macrotrends.net/global-metrics/cities/22007/lagos/population                             | ✓ | ⏱: 1.55s 
+[SCRAPE].. ◆ https://www.macrotrends.net/global-metrics/cities/22007/lagos/population                             | ✓ | ⏱: 0.04s 
+[COMPLETE] ● https://www.macrotrends.net/global-metrics/cities/22007/lagos/population                             | ✓ | ⏱: 1.60s 
+[06/05/26 01:16:21] INFO     Processing request of type            server.py:727
+                             CallToolRequest                                    
+[INIT].... → Crawl4AI 0.8.9 

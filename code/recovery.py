@@ -109,14 +109,16 @@ def handle_critic_verdict(nid: str, result, graph, recovered_branches: dict,
 
     Two shapes of Critic appear in S8: auto-inserted Critics (Graph.extend_from
     inserts one whenever a `critic:true` skill has outgoing edges) which
-    carry `target` + `child` in metadata, and Planner-emitted Critics
-    which do not — for the latter we derive both from graph structure.
+    carry `target` + `child` (+ optionally `all_children`) in metadata, and
+    Planner-emitted Critics which do not — for the latter we derive both
+    from graph structure.
     """
     if (result.output or {}).get("verdict", "pass") != "fail":
         return False
     md = graph.g.nodes[nid].get("metadata") or {}
     target_nid = md.get("target")
     child_nid = md.get("child")
+    all_children = md.get("all_children") or []
     if not target_nid:
         for inp in graph.g.nodes[nid]["inputs"]:
             if inp.startswith("n:") and inp in graph.g.nodes:
@@ -124,8 +126,14 @@ def handle_critic_verdict(nid: str, result, graph, recovered_branches: dict,
     if not child_nid:
         succs = list(graph.g.successors(nid))
         child_nid = succs[0] if succs else None
-    if child_nid and child_nid in graph.g.nodes:
-        graph.mark(child_nid, "skipped")
+        all_children = succs
+
+    # Mark ALL downstream children as skipped so they don't stall the graph.
+    children_to_skip = all_children if all_children else ([child_nid] if child_nid else [])
+    for c in children_to_skip:
+        if c and c in graph.g.nodes:
+            graph.mark(c, "skipped")
+
     if target_nid and not recovered_branches.get(target_nid):
         recovered_branches[target_nid] = True
         rationale = (result.output or {}).get("rationale", "(no rationale)")
