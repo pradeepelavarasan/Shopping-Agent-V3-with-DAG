@@ -45,7 +45,10 @@ The Shopping Agent V3 executes in three distinct, highly optimized phases:
 This section documents the execution of the main shopping pipeline. Key architectural highlights of this flow include:
 1. **Parallel Fanout**: Spawns three parallel `Product Analyst` nodes concurrently to analyze details and sentiment for the top three products.
 2. **Dynamic Ranking via Coder**: Employs a `Coder` node to generate Python scripts that sort and filter scraped products by review counts, executing securely in the `SandboxExecutor`.
-3. **Shopping-Specific Skills**: Leverages three specialized shopping nodes (`Product Shortlister`, `Product Analyst`, and `Product Recommender`) designed for e-commerce search, analysis, and comparison, dynamically orchestrated by the `Planner`.
+3. **Shopping-Specific Skills**: Leverages three specialized shopping nodes designed for e-commerce search, analysis, and comparison, dynamically orchestrated by the `Planner`:
+   - **Product Shortlister**: Uses a stealthy Playwright browser to search Amazon, extracts organic search results, preserves original price and currency metadata, and compiles the raw product listings.
+   - **Product Analyst**: Concurrently spawned in parallel (one for each of the top 3 products) to deep-scrape individual product pages, extract customer reviews, and perform evaluations across five dimensions: Customer Sentiment, Reliability, Value for Money, Feature Completeness, and Build Quality.
+   - **Product Recommender**: Aggregates the parallel analyst reports, evaluates the trade-offs, selects the single best "Top Recommendation", and compiles the unified products and analysis JSON payload.
 
 * **Query**: `bluetooth mouse` (using the professional Amazon Shopping Assistant prompt template)
 * **Graph Visualization**:
