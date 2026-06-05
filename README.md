@@ -1,20 +1,10 @@
 # Shopping Agent V3 using DAG (Directed Acyclic Graph)
 
-A production-grade, multi-agent shopping agent orchestrated via a Directed Acyclic Graph (DAG) system. This architecture upgrades from a single-loop sequential execution model to a dynamic, concurrent skill executor. Specialized nodes (Planner, Shortlister, Coder, SandboxExecutor, Analyst, Recommendation, Formatter) run in parallel using `asyncio.gather` for maximum speed and token efficiency.
+A multi-agent shopping agent orchestrated via a Directed Acyclic Graph (DAG) system. This architecture upgrades from a single-loop sequential execution model to a dynamic, concurrent skill executor. The system supports **general specialized nodes** (Planner, Researcher, Distiller, Summarizer, Critic, Coder, Sandbox Executor, Formatter) and **shopping specialist nodes** (Product Shortlister, Product Analyst, Product Recommender), running them in parallel using `asyncio.gather` for maximum speed and token efficiency.
 
-> **Demo Video**: Watch the Shopping Agent V3 in action, scraping, analyzing, and formatting recommendations: [YouTube Demo Link](https://youtu.be/vPosAeuZ4Pc) (Placeholder for demo video link)
+> **Demo Video**: Watch the Shopping Agent V3 in action, scraping, analyzing, and formatting recommendations: [YouTube Demo Link](https://youtu.be/vPosAeuZ4Pc)
 
-
-
----
-
-## The Paradigm Shift: From Single-Loop to DAG Orchestration
-
-In previous iterations (like Session 7 RAG), agentic workflows were bound by a **single iterating loop**: one perception call, one decision call, and one action dispatch per iteration. 
-
-This serial execution pattern severely bottlenecks execution:
-* **Latency Penalty**: Parallelizable requests (e.g., analyzing multiple products or fetching distinct URLs) are serialized. A multi-item search query takes 11 iterations and 125 seconds.
-* **Token Bloat**: Each loop iteration accumulates redundant prompt histories, causing the input token footprint to skyrocket (~54,000 input tokens).
+![Shopping Agent Screenshot](assets/Shopping%20Agent%20Screenshot.png)
 
 ---
 
@@ -50,7 +40,106 @@ image to be included
 
 ---
 
-## Tested Queries & Results
+## Shopping Agent Tested Queries and Results
+
+This section documents the execution of the main shopping pipeline. Key architectural highlights of this flow include:
+1. **Parallel Fanout**: Spawns three parallel `Product Analyst` nodes concurrently to analyze details and sentiment for the top three products.
+2. **Dynamic Ranking via Coder**: Employs a `Coder` node to generate Python scripts that sort and filter scraped products by review counts, executing securely in the `SandboxExecutor`.
+3. **Shopping-Specific Skills**: Leverages three specialized shopping nodes (`Product Shortlister`, `Product Analyst`, and `Product Recommender`) designed for e-commerce search, analysis, and comparison, dynamically orchestrated by the `Planner`.
+
+* **Query**: `bluetooth mouse` (using the professional Amazon Shopping Assistant prompt template)
+* **Graph Visualization**:
+![Shopping Agent Graph](Queries%20and%20Logs/ShoppingAgent.png)
+
+* **Execution Log**:
+```text
+session s8-2026-06-05_17-49-50  ─  query: You are a professional Amazon Shopping Assistant. Your task is to perform an analysis of the products requested in the query, identify the top three options based on volume of reviews by searching Amazon, evaluate them, select a "Top Recommendation", and output the final findings in a strict JSON format.
+
+If the user query mentions typos like "Batman and brackets" or "brackets", intelligently interpret it as "badminton racquets / rackets".
+
+Your response MUST be a single JSON structure matching this schema exactly, containing the details and evaluations for all three top products (do not output any natural language before or after the JSON, and do not use markdown code fences):
+
+{
+  "products": [
+    {
+      "id": "prod_1",
+      "title": "<Full product name, e.g. Yonex Nanoray Light 18i Graphite Badminton Racquet>",
+      "price": "<Price, e.g. ₹1,749 or $89>",
+      "rating": <Float, e.g. 4.3>,
+      "reviews_count": <Integer, e.g. 21200>,
+      "image_url": "<Valid image URL>",
+      "url": "<Product URL>"
+    },
+    {
+      "id": "prod_2",
+      "title": "<Full product name>",
+      "price": "<Price>",
+      "rating": <Float>,
+      "reviews_count": <Integer>,
+      "image_url": "<Valid image URL>",
+      "url": "<Product URL>"
+    },
+    {
+      "id": "prod_3",
+      "title": "<Full product name>",
+      "price": "<Price>",
+      "rating": <Float>,
+      "reviews_count": <Integer>,
+      "image_url": "<Valid image URL>",
+      "url": "<Product URL>"
+    }
+  ],
+  "analysis": {
+    "overall_agent_summary": "<A comprehensive 2-3 sentence paragraph explaining your recommendation reasoning, highlighting why the top choice is superior and who it is best for>",
+    "products": [
+      {
+        "product_id": "prod_1",
+        "is_top_recommendation": true,
+        "evaluations": {
+          // Downstream skills will populate evaluations for CUSTOMER SENTIMENT, RELIABILITY, VALUE FOR MONEY, FEATURE COMPLETENESS, and BUILD QUALITY.
+        }
+      },
+      {
+        "product_id": "prod_2",
+        "is_top_recommendation": false,
+        "evaluations": {}
+      },
+      {
+        "product_id": "prod_3",
+        "is_top_recommendation": false,
+        "evaluations": {}
+      }
+    ]
+  },
+  "task": {
+    "priorities": ["CUSTOMER SENTIMENT", "RELIABILITY", "VALUE FOR MONEY", "FEATURE COMPLETENESS", "BUILD QUALITY"]
+  }
+}
+
+
+User Query: bluetooth mouse
+══════════════════════════════════════════════════════════════════════════════
+[memory.read] 8 hit(s) visible to every skill this run
+[n:1] planner            complete (2.3s)
+[n:2] product_shortlister complete (17.9s)
+[n:3] coder              complete (4.8s)
+[n:4] sandbox_executor   complete (0.0s)
+[n:5] product_analyst    complete (14.4s)
+[n:6] product_analyst    complete (16.1s)
+[n:7] product_analyst    complete (13.9s)
+[n:8] product_recommendation complete (5.0s)
+[n:9] formatter          complete (5.2s)
+
+══════════════════════════════════════════════════════════════════════════════
+GATEWAY DATABASE CALLS LOGGED FOR SESSION: s8-2026-06-05_17-49-50
+══════════════════════════════════════════════════════════════════════════════
+[17:49:54] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=7287 out=570 (2287ms)
+[17:49:56] WORKER       | gemini_lite_3  | gemini-3.1-flash-lite          | OK    | in=694 out=31 (958ms)
+```
+
+---
+
+## Other Tested Queries & Results
 
 ### 1. Hello Sanity Check
 * **Query**: `Say hello.`
