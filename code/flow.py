@@ -536,12 +536,13 @@ def main() -> None:
                     # Restore original FDs (closes write ends of the pipes)
                     os.dup2(orig_stdout_fd, 1)
                     os.dup2(orig_stderr_fd, 2)
-                    os.close(orig_stdout_fd)
-                    os.close(orig_stderr_fd)
                     
                     # Wait for forwarding threads to finish reading remaining buffered data
                     t1.join(timeout=2.0)
                     t2.join(timeout=2.0)
+                    
+                    os.close(orig_stdout_fd)
+                    os.close(orig_stderr_fd)
                     
                     # In case the threads timed out, force close the read pipes
                     for fd in (stdout_pipe_r, stderr_pipe_r):
@@ -628,11 +629,12 @@ def main() -> None:
         sys.stderr.flush()
         os.dup2(orig_stdout_fd, 1)
         os.dup2(orig_stderr_fd, 2)
-        os.close(orig_stdout_fd)
-        os.close(orig_stderr_fd)
         
         t1.join(timeout=2.0)
         t2.join(timeout=2.0)
+        
+        os.close(orig_stdout_fd)
+        os.close(orig_stderr_fd)
         
         for fd in (stdout_pipe_r, stderr_pipe_r):
             try:
