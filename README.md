@@ -384,6 +384,7 @@ FINAL: The requested file path /nonexistent/path.txt could not be found, and the
 * **Query**: `For Lagos, Cairo, and Kinshasa, find current populations and growth rates and tell me which is growing fastest.`
 * **Graph Visualization (Kill Phase)**:
 ![kill_graph](Queries%20and%20Logs/K.%20Resumable%20execution_kill.png)
+  - **Observation**: During the kill phase, you can see that only 2 researcher nodes are complete and the other downstream nodes are left pending when the process was killed.
 
 * **Execution Log (Kill Phase)**:
 ```text
@@ -489,6 +490,7 @@ FINAL: The requested file path /nonexistent/path.txt could not be found, and the
 
 * **Graph Visualization (Resume Phase)**:
 ![resume_graph](Queries%20and%20Logs/K.%20Resumable%20execution_resumed.png)
+  - **Observation**: During the resume phase (resuming the same session), you can see that the previously pending items were successfully picked up and processed to completion.
 
 * **Execution Log (Resume Phase)**:
 ```text
