@@ -12,7 +12,7 @@ A multi-agent shopping agent orchestrated via a Directed Acyclic Graph (DAG) sys
 
 The Shopping Agent V3 executes in three distinct, highly optimized phases:
 
-image to be included
+![Shopping Agent V3 DAG Architecture](assets/DAG%20Screenshot.png)
 
 ### Phase 1: Product Shortlisting (Listing Scraper)
 * The **Planner** receives the user query and compiles a DAG.
