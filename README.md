@@ -603,7 +603,9 @@ FINAL: According to the official IPL 2026 points table (https://www.iplt20.com/m
 ### 7. Critic verification (Pass and Fail-Recover runs)
 * **Query**: `Fetch https://www.iplt20.com/matches/results and Extract the date and result of the recent match between RCB and GT. Have a critic verify the details extracted are correct.`
 
-The planner emits a critic node to verify the details. We'll also see how, when a critic node fails, the planner recovers from it, creates a new graph, and re-executes the plan.
+To ensure the high accuracy and reliability of the output data, the planner embeds a **Critic** node to check the research outputs before they are formatted. When a Critic node evaluates the initial research and issues a **fail** verdict (due to missing or inaccurate information), the orchestrator intercepts the failure and invokes the **Planner** in recovery mode. The Planner analyzes the Critic's feedback, dynamically rebuilds a corrected execution graph, and re-executes the retrieval plan to successfully correct and supply the missing details.
+
+In this specific run, the Critic failed on the initial run because the researcher failed to extract the complete match details correctly. The Planner then recovered, compiled a new graph (seen in the Part 2 visualization), fanned out the updated research steps, and executed them to deliver the correct results.
 
 * **Graph Visualizations**:
 ![L2 Graph Part 1](Queries%20and%20Logs/L2.%20Critic%20verification%20(Pass%20and%20Fail-Recover%20runs)_1.png)
