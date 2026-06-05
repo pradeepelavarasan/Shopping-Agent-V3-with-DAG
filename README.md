@@ -51,6 +51,8 @@ This section documents the execution of the main shopping pipeline. Key architec
    - **Product Recommender**: Aggregates the parallel analyst reports, evaluates the trade-offs, selects the single best "Top Recommendation", and compiles the unified products and analysis JSON payload.
 
 * **Query**: `bluetooth mouse` (using the professional Amazon Shopping Assistant prompt template)
+  - **Prompt Assembly**: When a search is submitted via the UI, the web server loads the static system instruction template (`shopping_system_prompt.txt`) and appends the user's raw search query (`User Query: bluetooth mouse`) at the end. 
+  - **Graph Injection**: This combined prompt is fed directly to the orchestrator (`code/flow.py`) as a single input, which represents the root `USER_QUERY` in the DAG. The `Planner` uses this merged query to compile the execution plan and enforce the target JSON schema constraints down the line.
 * **Graph Visualization**:
 ![Shopping Agent Graph](Queries%20and%20Logs/ShoppingAgent.png)
 
