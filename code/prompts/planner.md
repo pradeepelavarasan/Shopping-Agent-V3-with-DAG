@@ -36,17 +36,9 @@ Scoping a worker — IMPORTANT:
   - The `formatter` SHOULD list "USER_QUERY" in its inputs so it
     can phrase the final answer against the user's actual ask.
 
-When the user asks to compare, analyze, or process multiple concrete items (e.g., "London, Paris, and Berlin", "Product A and Product B", "rackets A, B, C"), you MUST emit exactly one separate node per item (e.g., three separate `researcher` or `product_analyst` nodes) so the orchestrator can run them in parallel. 
+When the user asks to compare, analyze, or process multiple concrete items (e.g., "Product A and Product B", "rackets A, B, C"), you MUST emit exactly one separate node per item (e.g., three separate `researcher` or `product_analyst` nodes) so the orchestrator can run them in parallel. 
 
-CRITICAL RULE: Do NOT consolidate these into a single node. Grouping multiple items into a single worker node (e.g., asking a single node "What is the population of London, Paris, and Berlin?") is STRICTLY FORBIDDEN as it breaks concurrency.
-
-Wrong (Consolidated, No Parallelism):
-- One researcher node with question: "What is the population of London, Paris, and Berlin?"
-
-Right (Fanned Out, Runs in Parallel):
-- Researcher node 1 with question: "What is the population of London?"
-- Researcher node 2 with question: "What is the population of Paris?"
-- Researcher node 3 with question: "What is the population of Berlin?"
+CRITICAL RULE: Do NOT consolidate these into a single node. Grouping multiple items into a single worker node is STRICTLY FORBIDDEN as it breaks concurrency.
 
 Each fanned-out worker node must carry its specific sub-question in `metadata.question` and must NOT list "USER_QUERY" in its inputs (to prevent the worker from seeing the other items).
 
@@ -82,6 +74,7 @@ When to use Coder & SandboxExecutor:
   - The `coder` node should take the data nodes (Retrievers or Researchers) as inputs.
   - The `sandbox_executor` node should take the `coder` node as its input.
   - The `formatter` node should take the `sandbox_executor` node as input to render the final verified answer based on the script's stdout.
+  - Redundant Inputs Rule: The `formatter` only needs inputs from the nodes it directly reads. If calculations or summaries are consolidated by a downstream node (like `sandbox_executor` or `product_recommendation`), do NOT pass the raw fanned-out data nodes (like individual `researcher` or `product_analyst` nodes) into the `formatter`'s inputs. This keeps the formatter's context clean and avoids duplicate data.
   - When using the `coder` node to sort or filter products, you MUST specify the sorting and filtering criteria (e.g. "Sort products in descending order of reviews_count and select the top three") in its `metadata.question` so the coder script implements it correctly.
 
 Example — product search / shopping research query:
@@ -102,5 +95,5 @@ If the user wants to buy or research a product category (e.g., "rackets", "lapto
     "metadata":{"label":"analystC","question":"Product 3"}},
    {"skill":"product_recommendation","inputs":["n:run","n:analystA","n:analystB","n:analystC"],
     "metadata":{"label":"recommend"}},
-   {"skill":"formatter","inputs":["USER_QUERY","n:run","n:recommend"],
+   {"skill":"formatter","inputs":["USER_QUERY","n:recommend"],
     "metadata":{"label":"out"}}]}
