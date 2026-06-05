@@ -53,7 +53,7 @@ This section documents the execution of the main shopping pipeline. Key architec
 
 * **Execution Log**:
 ```text
-session s8-2026-06-05_17-49-50  ─  query: You are a professional Amazon Shopping Assistant. Your task is to perform an analysis of the products requested in the query, identify the top three options based on volume of reviews by searching Amazon, evaluate them, select a "Top Recommendation", and output the final findings in a strict JSON format.
+session s8-2026-06-05_18-17-10  ─  query: You are a professional Amazon Shopping Assistant. Your task is to perform an analysis of the products requested in the query, identify the top three options based on volume of reviews by searching Amazon, evaluate them, select a "Top Recommendation", and output the final findings in a strict JSON format.
 
 If the user query mentions typos like "Batman and brackets" or "brackets", intelligently interpret it as "badminton racquets / rackets".
 
@@ -120,24 +120,36 @@ Your response MUST be a single JSON structure matching this schema exactly, cont
 User Query: bluetooth mouse
 ══════════════════════════════════════════════════════════════════════════════
 [memory.read] 8 hit(s) visible to every skill this run
-[n:1] planner            complete (2.3s)
-[n:2] product_shortlister complete (17.9s)
-[n:3] coder              complete (4.8s)
+[n:1] planner            complete (5.5s)
+[n:2] product_shortlister complete (16.4s)
+[n:3] coder              complete (5.4s)
 [n:4] sandbox_executor   complete (0.0s)
-[n:5] product_analyst    complete (14.4s)
-[n:6] product_analyst    complete (16.1s)
-[n:7] product_analyst    complete (13.9s)
-[n:8] product_recommendation complete (5.0s)
-[n:9] formatter          complete (5.2s)
+[n:5] product_analyst    complete (18.8s)
+[n:6] product_analyst    complete (18.8s)
+[n:7] product_analyst    complete (15.8s)
+[n:8] product_recommendation complete (11.4s)
+[n:9] formatter          complete (8.1s)
 
 ══════════════════════════════════════════════════════════════════════════════
-GATEWAY DATABASE CALLS LOGGED FOR SESSION: s8-2026-06-05_17-49-50
+GATEWAY DATABASE CALLS LOGGED FOR SESSION: s8-2026-06-05_18-17-10
 ══════════════════════════════════════════════════════════════════════════════
-[17:49:54] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=7287 out=570 (2287ms)
-[17:49:56] WORKER       | gemini_lite_3  | gemini-3.1-flash-lite          | OK    | in=694 out=31 (958ms)
+[18:17:17] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=7287 out=571 (5532ms)
+[18:17:18] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=694 out=31 (635ms)
+[18:17:33] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=12792 out=1753 (5369ms)
+[18:17:39] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=2459 out=1751 (5399ms)
+[18:17:41] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=1519 out=33 (2277ms)
+[18:17:42] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=1519 out=33 (2387ms)
+[18:17:42] WORKER       | gemini_lite_3  | gemini-3.1-flash-lite          | OK    | in=1519 out=35 (2565ms)
+[18:17:54] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=7009 out=361 (2029ms)
+[18:17:57] WORKER       | gemini_lite_3  | gemini-3.1-flash-lite          | OK    | in=7555 out=371 (3492ms)
+[18:17:58] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=7787 out=419 (3702ms)
+[18:18:09] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=2853 out=1787 (11357ms)
+[18:18:17] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=6011 out=1787 (8106ms)
+
+══════════════════════════════════════════════════════════════════════════════
+FINAL: {"products": [{"id": "prod_1", "title": "Portronics Toad One Bluetooth Mouse with 2.4 GHz & BT 5.3 Dual Wireless, 6 Buttons, Rechargeable, RGB Lights, Connect 3 Devices, Ergonomic Design for Laptop, Smartphone, Tablet (Black)", "price": "₹499", "rating": 4.3, "reviews_count": 9200, "image_url": "https://m.media-amazon.com/images/I/51hZtBRUFBL._SL1500_.jpg", "url": "https://www.amazon.in/dp/B0BG8LZNYL"}, {"id": "prod_2", "title": "ZEBRONICS Blanc Slim Wireless Mouse with Rechargeable Battery, BT + 2.4GHz, 4 Buttons, 800/1200/1600 DPI, Silent Operation, Multicolor LED Lights", "price": "₹299", "rating": 3.7, "reviews_count": 3400, "image_url": "https://m.media-amazon.com/images/I/51hZtBRUFBL._SL1500_.jpg", "url": "https://www.amazon.in/dp/B0BG8LZNYL"}]}
+══════════════════════════════════════════════════════════════════════════════
 ```
-
----
 
 ## Other Tested Queries & Results
 
