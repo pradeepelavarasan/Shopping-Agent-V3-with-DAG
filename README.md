@@ -2,7 +2,7 @@
 
 A multi-agent shopping agent orchestrated via a Directed Acyclic Graph (DAG) system. This architecture upgrades from a single-loop sequential execution model to a dynamic, concurrent skill executor. The system supports **general specialized nodes** (Planner, Researcher, Distiller, Summarizer, Critic, Coder, Sandbox Executor, Formatter) and **shopping specialist nodes** (Product Shortlister, Product Analyst, Product Recommender), running them in parallel using `asyncio.gather` for maximum speed and token efficiency.
 
-> **Demo Video**: Watch the Shopping Agent V3 in action, scraping, analyzing, and formatting recommendations: [YouTube Demo Link](https://youtu.be/vPosAeuZ4Pc)
+> **Demo Video**: Watch the Shopping Agent V3 in action, scraping, analyzing, and formatting recommendations: [YouTube Demo Link](https://youtu.be/ryuUEIaQpow)
 
 ![Shopping Agent Screenshot](assets/Shopping%20Agent%20Screenshot.png)
 
