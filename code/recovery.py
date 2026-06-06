@@ -138,10 +138,21 @@ def handle_critic_verdict(nid: str, result, graph, recovered_branches: dict,
         recovered_branches[target_nid] = True
         rationale = (result.output or {}).get("rationale", "(no rationale)")
         fr = f"critic failed target={target_nid} child={child_nid} rationale={rationale}"
+        
+        # Propagate and respect recovery depth limit to avoid infinite loops
+        target_meta = graph.g.nodes.get(target_nid, {}).get("metadata") or {}
+        parent_depth = target_meta.get("recovery_depth", 0)
+        if parent_depth >= 1:
+            print(f"  ↪ critic-fail on {target_nid} at recovery depth {parent_depth}; "
+                  f"LIMIT HIT — skipping further recovery planner to avoid loop")
+            cap_hit.append(target_nid)
+            return True
+
         rec_nid = graph.add_node("planner", inputs=["USER_QUERY"],
                                  metadata={"failure_report": fr,
                                            "recovers": target_nid,
-                                           "recovery_reason": "critic_fail"})
+                                           "recovery_reason": "critic_fail",
+                                           "recovery_depth": parent_depth + 1})
         print(f"  ↪ critic-fail recovery: planner node {rec_nid} for {target_nid}")
     elif target_nid:
         cap_hit.append(target_nid)

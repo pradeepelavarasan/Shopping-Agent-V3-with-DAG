@@ -142,14 +142,15 @@ class Graph:
                 else:
                     resolved.append(src_nid)
             self.g.nodes[new_id]["inputs"] = resolved
+            has_node_dep = False
             for inp in resolved:
                 if inp.startswith("n:") and inp in self.g.nodes:
                     self.g.add_edge(inp, new_id)
-            # Fan-out worker case: planner emitted inputs=[] on purpose. No
-            # data dependency, but we still record the structural parent
-            # edge so the executor's `ready_nodes` ordering and replay
-            # topology stay coherent.
-            if not raw_inputs:
+                    has_node_dep = True
+            # If the node has no other dependencies on nodes in this graph,
+            # record the structural parent edge from the planner node that spawned it
+            # so they are connected visually and topologically.
+            if not has_node_dep:
                 self.g.add_edge(src_nid, new_id)
 
         for child_skill in src_def.internal_successors:
@@ -191,14 +192,14 @@ class Graph:
                     "child": first_child,
                     "all_children": all_children,
                 }
-                # Propagate a scoped verification question if the skill config
-                # provided one (via `critic_question`). This prevents the
-                # generic critic from inventing full-schema expectations.
                 cq = getattr(src_def, "critic_question", None)
                 if cq:
                     critic_meta["question"] = cq
+                # The Critic node needs both the output of the target node under review,
+                # AND the inputs that the target node received, in order to verify it.
+                critic_inputs = [src_nid] + list(self.g.nodes[src_nid].get("inputs", []))
                 critic_nid = self.add_node(
-                    "critic", inputs=[src_nid],
+                    "critic", inputs=critic_inputs,
                     metadata=critic_meta,
                 )
                 # Wire critic → every child so they all wait for the verdict.

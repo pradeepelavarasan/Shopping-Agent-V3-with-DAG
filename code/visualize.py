@@ -173,6 +173,14 @@ def generate_visualization(session_id: str) -> None:
         colors = SKILL_COLORS.get(skill, DEFAULT_COLORS)
         
         label = f"ID: {nid}\nSkill: {skill}\nStatus: {status}"
+        metadata = node.get("metadata") or {}
+        recovery_depth = metadata.get("recovery_depth", 0)
+        if recovery_depth > 0:
+            label += f"\nDepth: {recovery_depth}"
+        recovery_reason = metadata.get("recovery_reason")
+        if recovery_reason:
+            label += f"\nReason: {recovery_reason}"
+
         vis_nodes.append({
             "id": nid,
             "label": label,

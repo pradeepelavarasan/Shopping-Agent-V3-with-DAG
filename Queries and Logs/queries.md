@@ -63,7 +63,9 @@ Comments:
 -->
 
 ## L2. Critic verification (Pass and Fail-Recover runs)
-Fetch https://www.iplt20.com/matches/results and Extract the date and result of the recent match between RCB and GT. Have a critic verify the details extracted are correct.
+
+
+Using the researcher skill, fetch https://en.wikipedia.org/wiki/Claude_Shannon to identify his birth city. Then, using the distiller skill, write a haiku (5-7-5 syllables) about this city. The first line of the haiku must contain exactly 3 words. Have the critic verify that the haiku has the correct 5-7-5 syllable structure and that the first line contains exactly 3 words. If the critic fails, have the planner re-plan.
 
 <!--
 Comments:

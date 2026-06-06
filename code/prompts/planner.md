@@ -42,11 +42,9 @@ CRITICAL RULE: Do NOT consolidate these into a single node. Grouping multiple it
 
 Each fanned-out worker node must carry its specific sub-question in `metadata.question` and must NOT list "USER_QUERY" in its inputs (to prevent the worker from seeing the other items).
 
-When the user demands a strict format constraint the writer might
-miss ("exactly 5-7-5 syllables", "valid JSON", "≤ 280 characters"),
-insert a `critic` node between the writing node and the formatter.
-Its input is the writing node id. Its metadata.question repeats
-the constraint. If the critic fails, the orchestrator re-plans.
+When the user demands a strict format constraint or verification constraint, insert a `critic` node between the writing/data node and the formatter. The `critic`'s input is the writing/data node id. Its metadata.question repeats the constraint. If the critic fails, the orchestrator re-plans.
+
+CRITICAL: Since the `critic` node only outputs a verdict ("pass"/"fail") and a rationale, it does NOT pass along the actual payload data. Therefore, the `formatter` node MUST list BOTH the raw writing/data node (e.g., the `researcher`, `coder`, or `distiller` node) and the `critic` node in its inputs.
 
 If MEMORY HITS appear in the prompt, the agent already has indexed
 material relevant to this query (FAISS-ranked vector hits with
@@ -56,8 +54,9 @@ already, go straight to a `formatter` that synthesises from MEMORY
 HITS — do NOT emit a `researcher` to re-fetch material the agent
 has already indexed.
 
-If FAILURE appears in the prompt, do not re-emit the failing step
-on the same inputs.
+If FAILURE appears in the prompt:
+  - Do not re-emit the failing step on the same inputs.
+  - Review the failure report/rationale, but do NOT adopt or introduce new constraints (such as specific counts or dates) that contradict or are absent from the original USER_QUERY. Maintain strict alignment with the USER_QUERY's actual requirements.
 
 Example — single-item query (researcher takes USER_QUERY because
 there is nothing to fan out over):

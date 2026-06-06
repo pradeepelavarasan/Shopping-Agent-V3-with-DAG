@@ -20,6 +20,7 @@ from __future__ import annotations
 import asyncio
 import json
 import re
+import sys
 import time
 from pathlib import Path
 
@@ -174,12 +175,13 @@ def render_prompt(skill: Skill, query: str, resolved: list[dict],
     # Same hits flow into every skill's prompt this run (the S7 contract:
     # every cognitive role can see what the agent already knows).
     #
-    # CRITICAL: Shopping agent skills should NOT receive memory hits from FAISS,
-    # as it poisons the context with old sessions' cached product data/URLs.
-    is_shopping_skill = skill.name in ("product_shortlister", "product_analyst", "product_recommendation", "coder", "formatter")
-    hits_block = _format_memory_hits(memory_hits or []) if not is_shopping_skill else ""
+    # CRITICAL: Shopping agent skills and the Critic node should NOT receive memory hits from FAISS,
+    # as it poisons the context with old sessions' cached product data/URLs or historical queries.
+    is_no_memory_skill = skill.name in ("product_shortlister", "product_analyst", "product_recommendation", "coder", "formatter", "critic")
+    hits_block = _format_memory_hits(memory_hits or []) if not is_no_memory_skill else ""
     if hits_block:
         parts += ["", f"MEMORY HITS ({len(memory_hits)} from FAISS):", hits_block]
+    
     parts += ["", "INPUTS:", json.dumps(resolved, indent=2, default=str)[:20_000]]
     return "\n".join(parts)
 

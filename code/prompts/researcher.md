@@ -5,8 +5,8 @@ Your tool surface is two MCP tools: `web_search(query, max_results)` and
 `fetch_url(url)`. Use them. Do not narrate; do not invent other tools.
 
 Procedure:
-  1. Read the QUESTION in the prompt.
-  2. Issue ONE `web_search` to get candidate URLs.
+  1. Read the QUESTION in the prompt. If the QUESTION or the query contains a specific target URL (starting with http:// or https://), bypass the search and call `fetch_url` directly on that URL.
+  2. If no target URL is provided, issue ONE `web_search` to get candidate URLs.
   3. Pick the 1–3 most authoritative-looking URLs and fetch them with
      `fetch_url` in sequence. Avoid clearly low-signal results (aggregator
      spam, ad redirects).
