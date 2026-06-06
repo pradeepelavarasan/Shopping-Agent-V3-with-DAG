@@ -1,22 +1,16 @@
-[gateway] up on http://localhost:8108
 
 ══════════════════════════════════════════════════════════════════════════════
-session s8-2026-06-05_00-45-54  ─  query: Say hello.
+session s8-2026-06-06_07-40-05  ─  query: Say hello.
 ══════════════════════════════════════════════════════════════════════════════
 [memory.read] 8 hit(s) visible to every skill this run
-[n:1] planner            complete (1.3s)
-[skills debug] formatter raw reply:
-{
-  "final_answer": "Hello! How can I assist you today?"
-}
-[skills debug] End of formatter raw reply
+[n:1] planner            complete (1.2s)
 [n:2] formatter          complete (0.8s)
 
 ══════════════════════════════════════════════════════════════════════════════
-GATEWAY DATABASE CALLS LOGGED FOR SESSION: s8-2026-06-05_00-45-54
+GATEWAY DATABASE CALLS LOGGED FOR SESSION: s8-2026-06-06_07-40-05
 ══════════════════════════════════════════════════════════════════════════════
-[00:45:57] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=4522 out=76 (1269ms)
-[00:45:58] WORKER       | gemini_lite_3  | gemini-3.1-flash-lite          | OK    | in=750 out=20 (820ms)
+[07:40:08] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=4932 out=74 (1228ms)
+[07:40:09] WORKER       | gemini_lite_3  | gemini-3.1-flash-lite          | OK    | in=858 out=20 (821ms)
 
 ══════════════════════════════════════════════════════════════════════════════
 FINAL: Hello! How can I assist you today?

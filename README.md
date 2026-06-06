@@ -168,73 +168,66 @@ FINAL: {"products": [{"id": "prod_1", "title": "Portronics Toad One Bluetooth Mo
 [gateway] up on http://localhost:8108
 
 ══════════════════════════════════════════════════════════════════════════════
-session s8-2026-06-05_00-45-54  ─  query: Say hello.
+session s8-2026-06-06_07-40-05  ─  query: Say hello.
 ══════════════════════════════════════════════════════════════════════════════
 [memory.read] 8 hit(s) visible to every skill this run
-[n:1] planner            complete (1.3s)
-[skills debug] formatter raw reply:
-{
-  "final_answer": "Hello! How can I assist you today?"
-}
-[skills debug] End of formatter raw reply
+[n:1] planner            complete (1.2s)
 [n:2] formatter          complete (0.8s)
 
 ══════════════════════════════════════════════════════════════════════════════
-GATEWAY DATABASE CALLS LOGGED FOR SESSION: s8-2026-06-05_00-45-54
+GATEWAY DATABASE CALLS LOGGED FOR SESSION: s8-2026-06-06_07-40-05
 ══════════════════════════════════════════════════════════════════════════════
-[00:45:57] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=4522 out=76 (1269ms)
-[00:45:58] WORKER       | gemini_lite_3  | gemini-3.1-flash-lite          | OK    | in=750 out=20 (820ms)
+[07:40:08] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=4932 out=74 (1228ms)
+[07:40:09] WORKER       | gemini_lite_3  | gemini-3.1-flash-lite          | OK    | in=858 out=20 (821ms)
 
 ══════════════════════════════════════════════════════════════════════════════
 FINAL: Hello! How can I assist you today?
 ══════════════════════════════════════════════════════════════════════════════
+
 ```
 
-### 2. Shannon Wikipedia Info Retrieval
+### 2. Shannon Wikipedia Info Retrieval and Critic Pass
 * **Query**: `Fetch https://en.wikipedia.org/wiki/Claude_Shannon and tell me his birth date, death date, and three key contributions to information theory.`
 * **Graph Visualization**:
 ![shannon_graph](Queries%20and%20Logs/A.%20Shannon%20Wikipedia.png)
 
+Critic Note is used to validate the response of the Distiller.
+
 * **Execution Log**:
 ```text
+
 ══════════════════════════════════════════════════════════════════════════════
-session s8-2026-06-05_00-47-11  ─  query: Fetch https://en.wikipedia.org/wiki/Claude_Shannon and tell me his birth date, death date, and three key contributions to information theory.
+session s8-2026-06-06_07-43-57  ─  query: Fetch https://en.wikipedia.org/wiki/Claude_Shannon and tell me his birth date, death date, and three key contributions to information theory.
 ══════════════════════════════════════════════════════════════════════════════
 [memory.read] 8 hit(s) visible to every skill this run
-[n:1] planner            complete (1.4s)
-[06/05/26 00:47:15] INFO     Processing request of type            server.py:727
+[n:1] planner            complete (1.6s)
+[06/06/26 07:44:01] INFO     Processing request of type            server.py:727
                              CallToolRequest                                    
 [INIT].... → Crawl4AI 0.8.9 
-[FETCH]... ↓ https://en.wikipedia.org/wiki/Claude_Shannon                                                         | ✓ | ⏱: 1.30s 
+[FETCH]... ↓ https://en.wikipedia.org/wiki/Claude_Shannon                                                         | ✓ | ⏱: 1.49s 
 [SCRAPE].. ◆ https://en.wikipedia.org/wiki/Claude_Shannon                                                         | ✓ | ⏱: 0.18s 
-[COMPLETE] ● https://en.wikipedia.org/wiki/Claude_Shannon                                                         | ✓ | ⏱: 1.49s 
-[06/05/26 00:47:18] INFO     Processing request of type            server.py:727
+[COMPLETE] ● https://en.wikipedia.org/wiki/Claude_Shannon                                                         | ✓ | ⏱: 1.68s 
+[06/06/26 07:44:05] INFO     Processing request of type            server.py:727
                              ListToolsRequest                                   
-[n:2] researcher         complete (5.9s)
-[skills debug] formatter raw reply:
-{
-  "final_answer": "Claude Shannon (April 30, 1916 – February 24, 2001) is widely recognized as the 'father of information theory.' His three key contributions to the field include:\n\n1. The introduction of the concept of information entropy.\n2. The development of the mathematical theory of communication.\n3. The formulation of the Shannon–Hartley theorem, which defines the maximum rate of error-free data transmission over a noisy channel. \n\nSource: https://en.wikipedia.org/wiki/Claude_Shannon"
-}
-[skills debug] End of formatter raw reply
-[n:3] formatter          complete (1.0s)
+[n:2] researcher         complete (6.9s)
+[n:3] distiller          complete (1.4s)
+[n:5] critic             complete (1.4s)
+[n:4] formatter          complete (1.0s)
 
 ══════════════════════════════════════════════════════════════════════════════
-GATEWAY DATABASE CALLS LOGGED FOR SESSION: s8-2026-06-05_00-47-11
+GATEWAY DATABASE CALLS LOGGED FOR SESSION: s8-2026-06-06_07-43-57
 ══════════════════════════════════════════════════════════════════════════════
-[00:47:13] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=3530 out=173 (1348ms)
-[00:47:15] WORKER       | gemini_lite_3  | gemini-3.1-flash-lite          | OK    | in=2578 out=28 (798ms)
-[00:47:19] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=12075 out=208 (1461ms)
-[00:47:20] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=1060 out=131 (998ms)
+[07:44:00] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=2579 out=207 (1624ms)
+[07:44:01] WORKER       | gemini_lite_3  | gemini-3.1-flash-lite          | OK    | in=1366 out=28 (1348ms)
+[07:44:06] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=10874 out=235 (1782ms)
+[07:44:08] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=1379 out=114 (1393ms)
+[07:44:09] WORKER       | gemini_lite_3  | gemini-3.1-flash-lite          | OK    | in=842 out=42 (1352ms)
+[07:44:10] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=1069 out=83 (984ms)
 
 ══════════════════════════════════════════════════════════════════════════════
-FINAL: Claude Shannon (April 30, 1916 – February 24, 2001) is widely recognized as the 'father of information theory.' His three key contributions to the field include:
-
-1. The introduction of the concept of information entropy.
-2. The development of the mathematical theory of communication.
-3. The formulation of the Shannon–Hartley theorem, which defines the maximum rate of error-free data transmission over a noisy channel. 
-
-Source: https://en.wikipedia.org/wiki/Claude_Shannon
+FINAL: Claude Shannon was born on April 30, 1916, and passed away on February 24, 2001. His three key contributions to information theory include: 1) The formal definition of information entropy, 2) The establishment of the channel capacity theorem, and 3) The conceptualization of data compression.
 ══════════════════════════════════════════════════════════════════════════════
+
 ```
 
 ### 3. Three City Populations (Parallel Fan-Out & Calculation)
@@ -585,40 +578,10 @@ Kinshasa is currently the fastest-growing city among the three, with an annual g
 ```
 
 
-### 6. Critic verification (Pass run)
-* **Query**: `Fetch https://www.iplt20.com/matches/points-table and find the team who got finished top of the table. Verify the details extracted are correct.`
-
-The planner explicitly emits a critic node to verify the details. We'll see how the critic evaluates and provides a success example of the same.
-
-* **Graph Visualization**:
-![L1 Graph](Queries%20and%20Logs/L1.%20Critic%20verification%20(Pass%20run).png)
-
-* **Execution Log**:
-```text
-session s8-2026-06-05_15-48-59  ─  query: Fetch https://www.iplt20.com/matches/points-table and find the team who got finished top of the table. Verify the details extracted are correct.
-[memory.read] 8 hit(s) visible to every skill this run
-[n:1] planner            complete (1.7s)
-[INIT].... → Crawl4AI 0.8.9 
-[FETCH]... ↓ https://www.iplt20.com/matches/points-table                                                          | ✓ | ⏱: 2.28s 
-[SCRAPE].. ◆ https://www.iplt20.com/matches/points-table                                                          | ✓ | ⏱: 0.03s 
-[COMPLETE] ● https://www.iplt20.com/matches/points-table                                                          | ✓ | ⏱: 2.32s 
-[n:2] researcher         complete (7.0s)
-[n:3] critic             complete (1.2s)
-[n:4] formatter          complete (1.5s)
-
-GATEWAY DATABASE CALLS LOGGED FOR SESSION: s8-2026-06-05_15-48-59
-[15:49:02] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=3569 out=256 (1697ms)
-[15:49:04] WORKER       | gemini_lite_3  | gemini-3.1-flash-lite          | OK    | in=2616 out=31 (1350ms)
-[15:49:09] WORKER       | gemini_lite_1  | gemini-3.1-flash-lite          | OK    | in=8043 out=180 (1374ms)
-[15:49:10] WORKER       | gemini_lite_2  | gemini-3.1-flash-lite          | OK    | in=2501 out=42 (1153ms)
-[15:49:12] WORKER       | gemini_lite_3  | gemini-3.1-flash-lite          | OK    | in=1223 out=100 (1534ms)
-
-FINAL: According to the official IPL 2026 points table (https://www.iplt20.com/matches/points-table), Royal Challengers Bengaluru (RCB) finished at the top of the standings. They achieved this position by securing 18 points from 14 matches, consisting of 9 wins and 5 losses, and maintaining a Net Run Rate (NRR) of 0.783.
-```
 
 ---
 
-### 7. Critic verification (Pass and Fail-Recover runs)
+### 6. Critic verification (Pass and Fail-Recover runs)
 * **Query**: `Using the researcher skill, fetch https://en.wikipedia.org/wiki/Claude_Shannon to identify his birth city. Then, using the distiller skill, write a haiku (5-7-5 syllables) about this city. The first line of the haiku must contain exactly 3 words. Have the critic verify that the haiku has the correct 5-7-5 syllable structure and that the first line contains exactly 3 words. If the critic fails, have the planner re-plan.`
 
 To ensure the high accuracy and reliability of the output data, the planner embeds a **Critic** node to check the research outputs before they are formatted. When a Critic node evaluates the initial research and issues a **fail** verdict (due to missing or inaccurate information, or violating structural constraints), the orchestrator intercepts the failure and invokes the **Planner** in recovery mode. The Planner analyzes the Critic's feedback, dynamically rebuilds a corrected execution graph, and re-executes the plan to correct the output.
